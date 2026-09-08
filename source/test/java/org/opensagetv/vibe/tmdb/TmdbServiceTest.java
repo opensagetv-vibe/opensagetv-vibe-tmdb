@@ -8,8 +8,11 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 final class TmdbServiceTest {
@@ -44,6 +47,19 @@ final class TmdbServiceTest {
           send(exchange, 200, "{\"id\":101,\"name\":\"Sample Show\"}");
           return;
         }
+        if (path.equals("/3/tv/101/season/2/episode/3")) {
+          send(exchange, 200, "{\"id\":203,\"season_number\":2,\"episode_number\":3,"
+              + "\"name\":\"Example Episode\",\"overview\":\"Plot\","
+              + "\"air_date\":\"2026-02-03\",\"still_path\":\"/still.jpg\"}");
+          return;
+        }
+        if (path.equals("/3/configuration")) {
+          send(exchange, 200, "{\"images\":{\"base_url\":\"http://image/\","
+              + "\"secure_base_url\":\"https://image/\","
+              + "\"backdrop_sizes\":[\"w780\"],\"poster_sizes\":[\"w500\"],"
+              + "\"profile_sizes\":[\"h632\"],\"still_sizes\":[\"w300\"]}}");
+          return;
+        }
         send(exchange, 404, "{}");
       }
     });
@@ -62,6 +78,29 @@ final class TmdbServiceTest {
       LookupResult lookup = service.resolveExact(MediaType.TV, "Sample Show", Integer.valueOf(2026));
       require(lookup.getStatus() == LookupResult.Status.MATCHED, "exact resolution");
       require(service.getDetailsJson(MediaType.TV, 101, "credits").contains("Sample Show"), "details");
+      require(service.getCachedDetailsJson(MediaType.TV, 101, "credits").isPresent(),
+          "cache-only details");
+
+      TmdbEpisode episode = service.getEpisode(101, 2, 3);
+      require(episode.getId() == 203 && "Example Episode".equals(episode.getName()),
+          "typed episode");
+      require(service.getCachedEpisode(101, 2, 3).isPresent(), "cache-only episode");
+
+      TmdbArtworkConfiguration artwork = service.getArtworkConfiguration();
+      require("https://image/".equals(artwork.getSecureBaseUrl()), "artwork configuration");
+      require(artwork.getPosterSizes().contains("w500"), "artwork poster sizes");
+      require(service.getCachedArtworkConfiguration().isPresent(), "cache-only artwork");
+
+      MetadataLookupRequest batchRequest =
+          new MetadataLookupRequest(MediaType.TV, "Sample Show", Integer.valueOf(2026));
+      Map<MetadataLookupRequest, LookupResult> batch = service.resolveExactBatch(
+          Arrays.asList(batchRequest,
+              new MetadataLookupRequest(MediaType.TV, "Sample Show", Integer.valueOf(2026))));
+      require(batch.size() == 1, "batch deduplication");
+      require(batch.get(batchRequest).getStatus() == LookupResult.Status.MATCHED,
+          "batch resolution");
+      require(service.resolveExactCached(MediaType.TV, "Sample Show", Integer.valueOf(2026))
+          .isPresent(), "cache-only lookup");
 
       int beforeMissing = requests.get();
       require(service.resolveExact(MediaType.TV, "Missing", null).getStatus() == LookupResult.Status.NO_MATCH,
@@ -75,6 +114,11 @@ final class TmdbServiceTest {
       int beforeCachedSearch = requests.get();
       service.search(MediaType.TV, "Sample Show", Integer.valueOf(2026));
       require(requests.get() == beforeCachedSearch, "search cache avoids HTTP request");
+
+      Optional<LookupResult> absentOffline =
+          service.resolveExactCached(MediaType.MOVIE, "Never Requested", null);
+      require(!absentOffline.isPresent(), "cache-only miss performs no HTTP request");
+      require(requests.get() == beforeCachedSearch, "cache-only calls remain offline");
     } finally {
       server.stop(0);
       service.close();

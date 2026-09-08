@@ -2,7 +2,8 @@
 
 ## Current state
 
-The standalone project and first cache/configuration foundation exist locally.
+The standalone project and first cache/configuration foundation exist locally
+and are integrated into the common ten-repository development/handoff workflow.
 The Java 8-compatible sources implement strict `[tmdb]` TOML loading with
 redacted summaries and SQLite schema version 1 with WAL, busy timeout,
 transactional initialization, positive/negative lookup cache, generic JSON
@@ -22,9 +23,22 @@ details, persistent positive cache, and negative-cache reuse. A live call to
 TMDB's configuration endpoint passed with the local ignored credential file;
 the output contained only a redacted configuration summary.
 
+The root `dev.cmd all` passes through the installed unified Docker image without
+rebuilding it. The build-environment workflow contract and isolated complete
+ten-repository handoff test also pass with this project included. The project
+has the common update and changed-files handoff launchers; plugin installation,
+runtime component updates, release/SBOM assembly, and public CI are still open.
+
+The public API now includes typed episode/artwork results, cache-only reads,
+deduplicated batch lookup, and consistent SQLite backup. The stock-compatible
+`OpenSageTVVibeTmdbPlugin` starts the service from a private TOML path and the
+Studio facade exposes only safe scalar/array calls. The build runs a separate
+probe against Core's actual `Sage.jar` and verifies that compile-only `sage.*`
+API classes never enter `OpenSageTVVibeTMDB.jar`.
+
 ## Next takeover
 
-Run `dev.cmd all`, then implement the public service interface and fake-server
-HTTP tests before connecting SageMC or XMLTV. Do not let either consumer access
-SQLite directly. After the local API is stable, add this tenth repository to
-the unified build environment and component-only container update path.
+Run `dev.cmd all`, then implement thin SageMC and XMLTV adapters against the
+public service interface. Do not let either consumer access SQLite directly.
+Add the component-only install/update path once the plugin descriptor and exact
+SageTV JAR deployment layout are defined.

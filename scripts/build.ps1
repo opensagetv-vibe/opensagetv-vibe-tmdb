@@ -37,23 +37,44 @@ if (Test-Path -LiteralPath $Output) {
   Remove-Item -LiteralPath $ResolvedOutput -Recurse -Force
 }
 $Classes = Join-Path $Output 'classes'
+$ApiClasses = Join-Path $Output 'api-classes'
 $TestClasses = Join-Path $Output 'test-classes'
 $Packages = Join-Path $Output 'packages'
-New-Item -ItemType Directory -Force -Path $Classes,$TestClasses,$Packages | Out-Null
+New-Item -ItemType Directory -Force -Path $ApiClasses,$Classes,$TestClasses,$Packages | Out-Null
 
+$ApiSources = @(Get-ChildItem -LiteralPath (Join-Path $ProjectRoot 'source/compileOnly/java') -Filter '*.java' -Recurse | ForEach-Object FullName)
 $MainSources = @(Get-ChildItem -LiteralPath (Join-Path $ProjectRoot 'source/main/java') -Filter '*.java' -Recurse | ForEach-Object FullName)
 $TestSources = @(Get-ChildItem -LiteralPath (Join-Path $ProjectRoot 'source/test/java') -Filter '*.java' -Recurse | ForEach-Object FullName)
 $Classpath = "$SqliteJar;$GsonJar"
-& javac -encoding UTF-8 '-Xlint:all,-classfile' --release 8 -classpath $Classpath -d $Classes @MainSources
+& javac -encoding UTF-8 '-Xlint:all' --release 8 -d $ApiClasses @ApiSources
+if ($LASTEXITCODE) { throw 'SageTV compile-only API compilation failed' }
+& javac -encoding UTF-8 '-Xlint:all,-classfile' --release 8 -classpath "$ApiClasses;$Classpath" -d $Classes @MainSources
 if ($LASTEXITCODE) { throw 'TMDB production compilation failed' }
-& javac -encoding UTF-8 '-Xlint:all,-classfile' --release 8 -classpath "$Classes;$Classpath" -d $TestClasses @TestSources
+& javac -encoding UTF-8 '-Xlint:all,-classfile' --release 8 -classpath "$ApiClasses;$Classes;$Classpath" -d $TestClasses @TestSources
 if ($LASTEXITCODE) { throw 'TMDB test compilation failed' }
-& java -classpath "$TestClasses;$Classes;$Classpath" org.opensagetv.vibe.tmdb.TestRunner
+& java -classpath "$TestClasses;$ApiClasses;$Classes;$Classpath" org.opensagetv.vibe.tmdb.TestRunner
 if ($LASTEXITCODE) { throw 'TMDB tests failed' }
+$SageJar = $env:SAGETV_COMPILE_JAR
+if (!$SageJar) {
+  $Candidate = Join-Path (Split-Path -Parent $ProjectRoot) 'opensagetv-vibe-core/build/release/Sage.jar'
+  if (Test-Path -LiteralPath $Candidate) { $SageJar = $Candidate }
+}
+if ($SageJar) {
+  if (!(Test-Path -LiteralPath $SageJar)) { throw "SAGETV_COMPILE_JAR does not exist: $SageJar" }
+  & java -classpath "$TestClasses;$Classes;$SageJar;$Classpath" org.opensagetv.vibe.tmdb.SageTvBinaryCompatibilityProbe
+  if ($LASTEXITCODE) { throw 'Actual Sage.jar binary-compatibility probe failed' }
+} else {
+  Write-Output 'SKIPPED: actual Sage.jar binary-compatibility probe (set SAGETV_COMPILE_JAR)'
+}
 
 $PluginJar = Join-Path $Packages 'OpenSageTVVibeTMDB.jar'
 & jar --create --file $PluginJar -C $Classes .
 if ($LASTEXITCODE) { throw 'TMDB JAR packaging failed' }
+$JarEntries = @(& jar tf $PluginJar)
+if ($LASTEXITCODE) { throw 'TMDB JAR inspection failed' }
+if ($JarEntries | Where-Object { $_ -like 'sage/*' }) {
+  throw 'Compile-only SageTV API classes leaked into the plugin JAR'
+}
 Copy-Item -LiteralPath $SqliteJar -Destination $Packages
 Copy-Item -LiteralPath $GsonJar -Destination $Packages
 Write-Output "PASS: $PluginJar"

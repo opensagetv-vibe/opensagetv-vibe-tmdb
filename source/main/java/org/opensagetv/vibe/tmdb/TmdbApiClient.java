@@ -1,5 +1,6 @@
 package org.opensagetv.vibe.tmdb;
 
+import com.google.gson.JsonParser;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -81,11 +82,17 @@ final class TmdbApiClient {
       if (token != null && !token.isEmpty()) connection.setRequestProperty("Authorization", "Bearer " + token);
       try {
         int status = connection.getResponseCode();
-        if (status >= 200 && status < 300) return readBounded(connection.getInputStream());
+        if (status >= 200 && status < 300) {
+          String json = readBounded(connection.getInputStream());
+          validateJson(json);
+          return json;
+        }
         TmdbApiException error = statusError(status);
         if (!retryable(status) || attempt >= retries) throw error;
         sleepRetry(connection.getHeaderField("Retry-After"), attempt);
       } catch (TmdbApiException error) {
+        throw error;
+      } catch (InvalidResponseException error) {
         throw error;
       } catch (IOException error) {
         if (attempt >= retries) break;
@@ -140,11 +147,30 @@ final class TmdbApiClient {
       int count;
       while ((count = stream.read(buffer)) != -1) {
         total += count;
-        if (total > MAX_RESPONSE_BYTES) throw new IOException("TMDB response exceeded 4 MiB limit");
+        if (total > MAX_RESPONSE_BYTES) {
+          throw new InvalidResponseException("TMDB response exceeded 4 MiB limit");
+        }
         output.write(buffer, 0, count);
       }
       return new String(output.toByteArray(), StandardCharsets.UTF_8);
     }
+  }
+
+  private static void validateJson(String json) throws InvalidResponseException {
+    try {
+      if (JsonParser.parseString(json).isJsonNull()) {
+        throw new InvalidResponseException("TMDB returned an empty JSON value");
+      }
+    } catch (InvalidResponseException error) {
+      throw error;
+    } catch (RuntimeException error) {
+      throw new InvalidResponseException("TMDB returned malformed JSON");
+    }
+  }
+
+  private static final class InvalidResponseException extends IOException {
+    private static final long serialVersionUID = 1L;
+    InvalidResponseException(String message) { super(message); }
   }
 
   private static String encodeQuery(Map<String, String> parameters) throws IOException {

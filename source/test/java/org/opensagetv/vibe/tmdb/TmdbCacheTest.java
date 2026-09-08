@@ -2,6 +2,7 @@ package org.opensagetv.vibe.tmdb;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 final class TmdbCacheTest {
@@ -61,10 +62,39 @@ final class TmdbCacheTest {
           1);
       require(!cache.getLookup("tv:missing::en-US:US", now + 2).isPresent(), "expired negative lookup");
       require(cache.cleanup(now + 2) >= 1, "expired row cleanup");
+
+      cache.putResource("bounded", "movie", Long.valueOf(5), "details", "en-US", "US", "",
+          "{\"id\":5}", now, CachePolicy.MAX_RETENTION_SECONDS + CachePolicy.DAY_SECONDS);
+      CachedResource bounded = cache.getResource("bounded", now + 1).get();
+      require(bounded.getExpiresAtEpochSeconds() == now + CachePolicy.MAX_RETENTION_SECONDS,
+          "hard retention ceiling");
+
+      Path backup = database.resolveSibling("tmdb-backup.sqlite3");
+      cache.backup(backup);
+      try (TmdbCache restored = new TmdbCache(backup)) {
+        require(restored.getResource("bounded", now + 1).isPresent(), "consistent backup");
+      }
     }
 
     try (TmdbCache reopened = new TmdbCache(database)) {
       require(reopened.getResource("tv:101:details:en-US:US", now + 2).isPresent(), "persistent cache");
+    }
+
+    try (TmdbCache first = new TmdbCache(database);
+        TmdbCache second = new TmdbCache(database)) {
+      first.putResource("concurrent", "tv", Long.valueOf(202), "details", "en-US", "US", "",
+          "{\"id\":202}", now, CachePolicy.DEFAULT_DETAILS_TTL_SECONDS);
+      require(second.getResource("concurrent", now + 1).isPresent(),
+          "independent connections share WAL state");
+    }
+
+    Path corrupt = database.resolveSibling("corrupt.sqlite3");
+    Files.write(corrupt, "not a sqlite database".getBytes(StandardCharsets.UTF_8));
+    try {
+      new TmdbCache(corrupt);
+      throw new AssertionError("corrupt database should fail safely");
+    } catch (java.sql.SQLException expected) {
+      require(expected.getMessage() != null, "corrupt database diagnostic");
     }
   }
 

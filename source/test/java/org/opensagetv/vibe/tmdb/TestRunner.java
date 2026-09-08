@@ -10,6 +10,8 @@ public final class TestRunner {
     TmdbConfigurationTest.run();
     TmdbCacheTest.run();
     TmdbServiceTest.run();
+    TmdbApiClientFailureTest.run();
+    SageTvPluginCompatibilityTest.run();
     String localConfig = System.getenv("TMDB_TEST_CONFIG");
     if (localConfig != null && !localConfig.trim().isEmpty()) {
       TmdbConfiguration configuration = TmdbConfiguration.load(Paths.get(localConfig));

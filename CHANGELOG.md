@@ -17,3 +17,15 @@
   low-level exception that could expose a v3 API key.
 - Passed fake-server search/details/429/negative-cache tests and a live
   authentication/configuration smoke test using the ignored local TOML file.
+- Integrated the repository into the existing unified Docker development
+  container, common component command surface, checkout helpers, and complete
+  ten-repository handoff workflow without rebuilding the toolchain image.
+- Added the standard resumable update and changed-files handoff launchers.
+- Extended the consumer API with typed episode and artwork configuration,
+  cache-only/offline reads, deduplicated batch lookups, and consistent SQLite
+  backup. Added bounded HTTP auth/404/429/5xx/timeout/malformed/oversized and
+  credential-redaction regressions plus cache retention/corruption/WAL tests.
+- Added a stock SageTV 9 `SageTVPlugin` lifecycle/configuration wrapper and a
+  small scalar/array facade for Studio consumers. The build proves binary
+  linkage against the actual Core `Sage.jar` while excluding compile-only API
+  stubs from the packaged plugin JAR.

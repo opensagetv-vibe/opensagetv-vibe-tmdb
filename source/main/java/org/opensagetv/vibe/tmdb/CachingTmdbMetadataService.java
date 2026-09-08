@@ -63,14 +63,14 @@ public final class CachingTmdbMetadataService implements TmdbMetadataService {
   @Override
   public LookupResult resolveExact(MediaType type, String title, Integer year)
       throws IOException, SQLException {
+    if (type == null) throw new IllegalArgumentException("media type is required");
     String normalized = normalizeTitle(title);
     Optional<Long> manual = cache.getManualMapping(type.apiPath(), normalized, year);
     long now = Instant.now().getEpochSecond();
     if (manual.isPresent()) {
       return new LookupResult(LookupResult.Status.MATCHED, manual.get(), "manual", now, Long.MAX_VALUE);
     }
-    String lookupKey = type.apiPath() + ":" + normalized + ":" + yearValue(year)
-        + ":" + language + ":" + region;
+    String lookupKey = lookupKey(type, normalized, year);
     Optional<LookupResult> cached = cache.getLookup(lookupKey, now);
     if (cached.isPresent()) return cached.get();
 
@@ -107,12 +107,41 @@ public final class CachingTmdbMetadataService implements TmdbMetadataService {
   }
 
   @Override
+  public Optional<LookupResult> resolveExactCached(MediaType type, String title, Integer year)
+      throws SQLException {
+    if (type == null) throw new IllegalArgumentException("media type is required");
+    String normalized = normalizeTitle(requireText(title, "title"));
+    Optional<Long> manual = cache.getManualMapping(type.apiPath(), normalized, year);
+    long now = Instant.now().getEpochSecond();
+    if (manual.isPresent()) {
+      return Optional.of(new LookupResult(
+          LookupResult.Status.MATCHED, manual.get(), "manual", now, Long.MAX_VALUE));
+    }
+    return cache.getLookup(lookupKey(type, normalized, year), now);
+  }
+
+  @Override
+  public Map<MetadataLookupRequest, LookupResult> resolveExactBatch(
+      List<MetadataLookupRequest> requests) throws IOException, SQLException {
+    if (requests == null) throw new IllegalArgumentException("requests are required");
+    Map<MetadataLookupRequest, LookupResult> resolved =
+        new LinkedHashMap<MetadataLookupRequest, LookupResult>();
+    for (MetadataLookupRequest request : requests) {
+      if (request == null) throw new IllegalArgumentException("batch request must not be null");
+      if (!resolved.containsKey(request)) {
+        resolved.put(request, resolveExact(
+            request.getMediaType(), request.getTitle(), request.getYear()));
+      }
+    }
+    return Collections.unmodifiableMap(resolved);
+  }
+
+  @Override
   public String getDetailsJson(MediaType type, long tmdbId, String appendToResponse)
       throws IOException, SQLException {
-    if (type == null) throw new IllegalArgumentException("media type is required");
-    if (tmdbId <= 0) throw new IllegalArgumentException("TMDB ID must be positive");
-    String append = appendToResponse == null ? "" : appendToResponse.trim();
-    String key = "details:" + type.apiPath() + ":" + tmdbId + ":" + language + ":" + region + ":" + append;
+    validateDetailsInput(type, tmdbId);
+    String append = normalizedAppend(appendToResponse);
+    String key = detailsKey(type, tmdbId, append);
     long now = Instant.now().getEpochSecond();
     Optional<CachedResource> cached = cache.getResource(key, now);
     if (cached.isPresent()) return cached.get().getPayloadJson();
@@ -124,12 +153,97 @@ public final class CachingTmdbMetadataService implements TmdbMetadataService {
     return json;
   }
 
+  @Override
+  public Optional<String> getCachedDetailsJson(
+      MediaType type, long tmdbId, String appendToResponse) throws SQLException {
+    validateDetailsInput(type, tmdbId);
+    Optional<CachedResource> cached = cache.getResource(
+        detailsKey(type, tmdbId, normalizedAppend(appendToResponse)),
+        Instant.now().getEpochSecond());
+    return cached.isPresent()
+        ? Optional.of(cached.get().getPayloadJson()) : Optional.<String>empty();
+  }
+
+  @Override
+  public TmdbEpisode getEpisode(long seriesId, int seasonNumber, int episodeNumber)
+      throws IOException, SQLException {
+    validateEpisodeInput(seriesId, seasonNumber, episodeNumber);
+    long now = Instant.now().getEpochSecond();
+    String key = episodeKey(seriesId, seasonNumber, episodeNumber);
+    Optional<CachedResource> cached = cache.getResource(key, now);
+    String json;
+    if (cached.isPresent()) {
+      json = cached.get().getPayloadJson();
+    } else {
+      json = api.getJson(
+          "tv/" + seriesId + "/season/" + seasonNumber + "/episode/" + episodeNumber,
+          commonParameters());
+      cache.putResource(key, "tv", Long.valueOf(seriesId), "episode", language,
+          region, seasonNumber + ":" + episodeNumber, json, now,
+          CachePolicy.DEFAULT_DETAILS_TTL_SECONDS);
+    }
+    return parseEpisode(seriesId, seasonNumber, episodeNumber, json);
+  }
+
+  @Override
+  public Optional<TmdbEpisode> getCachedEpisode(
+      long seriesId, int seasonNumber, int episodeNumber) throws IOException, SQLException {
+    validateEpisodeInput(seriesId, seasonNumber, episodeNumber);
+    Optional<CachedResource> cached = cache.getResource(
+        episodeKey(seriesId, seasonNumber, episodeNumber), Instant.now().getEpochSecond());
+    return cached.isPresent()
+        ? Optional.of(parseEpisode(seriesId, seasonNumber, episodeNumber,
+            cached.get().getPayloadJson()))
+        : Optional.<TmdbEpisode>empty();
+  }
+
+  @Override
+  public TmdbArtworkConfiguration getArtworkConfiguration() throws IOException, SQLException {
+    long now = Instant.now().getEpochSecond();
+    Optional<CachedResource> cached = cache.getResource(artworkKey(), now);
+    String json;
+    if (cached.isPresent()) {
+      json = cached.get().getPayloadJson();
+    } else {
+      json = api.getJson("configuration", Collections.<String, String>emptyMap());
+      cache.putResource(artworkKey(), "system", null, "configuration", "", "", "",
+          json, now, CachePolicy.DEFAULT_DETAILS_TTL_SECONDS);
+    }
+    return parseArtworkConfiguration(json);
+  }
+
+  @Override
+  public Optional<TmdbArtworkConfiguration> getCachedArtworkConfiguration()
+      throws IOException, SQLException {
+    Optional<CachedResource> cached = cache.getResource(
+        artworkKey(), Instant.now().getEpochSecond());
+    return cached.isPresent()
+        ? Optional.of(parseArtworkConfiguration(cached.get().getPayloadJson()))
+        : Optional.<TmdbArtworkConfiguration>empty();
+  }
+
   private Map<String, String> commonParameters() {
     Map<String, String> result = new LinkedHashMap<String, String>();
     result.put("language", language);
     if (!region.isEmpty()) result.put("region", region);
     return result;
   }
+
+  private String lookupKey(MediaType type, String normalizedTitle, Integer year) {
+    return type.apiPath() + ":" + normalizedTitle + ":" + yearValue(year)
+        + ":" + language + ":" + region;
+  }
+
+  private String detailsKey(MediaType type, long tmdbId, String append) {
+    return "details:" + type.apiPath() + ":" + tmdbId + ":" + language + ":" + region + ":" + append;
+  }
+
+  private String episodeKey(long seriesId, int seasonNumber, int episodeNumber) {
+    return "episode:tv:" + seriesId + ":" + seasonNumber + ":" + episodeNumber
+        + ":" + language + ":" + region;
+  }
+
+  private String artworkKey() { return "configuration:images"; }
 
   private static List<TmdbSearchResult> parseSearchResults(MediaType type, String json)
       throws IOException {
@@ -163,6 +277,48 @@ public final class CachingTmdbMetadataService implements TmdbMetadataService {
     }
   }
 
+  private static TmdbEpisode parseEpisode(
+      long seriesId, int seasonNumber, int episodeNumber, String json) throws IOException {
+    try {
+      JsonObject item = JsonParser.parseString(json).getAsJsonObject();
+      if (!item.has("id") || item.get("id").isJsonNull()) {
+        throw new IOException("TMDB episode response has no ID");
+      }
+      return new TmdbEpisode(item.get("id").getAsLong(), seriesId,
+          item.has("season_number") ? item.get("season_number").getAsInt() : seasonNumber,
+          item.has("episode_number") ? item.get("episode_number").getAsInt() : episodeNumber,
+          string(item, "name"), string(item, "overview"), string(item, "air_date"),
+          string(item, "still_path"));
+    } catch (RuntimeException error) {
+      throw new IOException("TMDB returned malformed episode JSON", error);
+    }
+  }
+
+  private static TmdbArtworkConfiguration parseArtworkConfiguration(String json)
+      throws IOException {
+    try {
+      JsonObject root = JsonParser.parseString(json).getAsJsonObject();
+      JsonObject images = root.getAsJsonObject("images");
+      if (images == null) throw new IOException("TMDB configuration has no images object");
+      return new TmdbArtworkConfiguration(
+          string(images, "base_url"), string(images, "secure_base_url"),
+          strings(images, "backdrop_sizes"), strings(images, "poster_sizes"),
+          strings(images, "profile_sizes"), strings(images, "still_sizes"));
+    } catch (RuntimeException error) {
+      throw new IOException("TMDB returned malformed configuration JSON", error);
+    }
+  }
+
+  private static List<String> strings(JsonObject object, String name) {
+    JsonArray values = object.getAsJsonArray(name);
+    if (values == null) return Collections.emptyList();
+    List<String> parsed = new ArrayList<String>();
+    for (JsonElement value : values) {
+      if (value.isJsonPrimitive()) parsed.add(value.getAsString());
+    }
+    return parsed;
+  }
+
   private static String string(JsonObject object, String name) {
     JsonElement value = object.get(name);
     return value == null || value.isJsonNull() ? "" : value.getAsString();
@@ -176,6 +332,21 @@ public final class CachingTmdbMetadataService implements TmdbMetadataService {
   }
 
   private static String yearValue(Integer year) { return year == null ? "" : year.toString(); }
+
+  private static String normalizedAppend(String appendToResponse) {
+    return appendToResponse == null ? "" : appendToResponse.trim();
+  }
+
+  private static void validateDetailsInput(MediaType type, long tmdbId) {
+    if (type == null) throw new IllegalArgumentException("media type is required");
+    if (tmdbId <= 0) throw new IllegalArgumentException("TMDB ID must be positive");
+  }
+
+  private static void validateEpisodeInput(long seriesId, int seasonNumber, int episodeNumber) {
+    if (seriesId <= 0) throw new IllegalArgumentException("TMDB series ID must be positive");
+    if (seasonNumber < 0) throw new IllegalArgumentException("season number must not be negative");
+    if (episodeNumber <= 0) throw new IllegalArgumentException("episode number must be positive");
+  }
 
   private static String requireText(String value, String name) {
     if (value == null || value.trim().isEmpty()) throw new IllegalArgumentException(name + " must not be blank");

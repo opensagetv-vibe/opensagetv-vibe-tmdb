@@ -4,6 +4,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -16,10 +17,12 @@ import java.util.Optional;
 /** Single-owner SQLite cache shared by SageMC, XMLTV, and later metadata consumers. */
 public final class TmdbCache implements Closeable {
   public static final int SCHEMA_VERSION = 1;
+  private final Path databasePath;
   private final Connection connection;
 
   public TmdbCache(Path databasePath) throws SQLException, IOException {
     Path absolute = databasePath.toAbsolutePath().normalize();
+    this.databasePath = absolute;
     Path parent = absolute.getParent();
     if (parent != null) {
       Files.createDirectories(parent);
@@ -30,8 +33,17 @@ public final class TmdbCache implements Closeable {
       throw new SQLException("SQLite JDBC driver is not installed", error);
     }
     connection = DriverManager.getConnection("jdbc:sqlite:" + absolute);
-    configure();
-    migrate();
+    try {
+      configure();
+      migrate();
+    } catch (SQLException error) {
+      try {
+        connection.close();
+      } catch (SQLException closeError) {
+        error.addSuppressed(closeError);
+      }
+      throw error;
+    }
   }
 
   private void configure() throws SQLException {
@@ -266,6 +278,28 @@ public final class TmdbCache implements Closeable {
       removed += lookups.executeUpdate();
     }
     return removed;
+  }
+
+  /** Creates a transactionally consistent SQLite snapshot without exposing table ownership. */
+  public synchronized void backup(Path destination) throws SQLException, IOException {
+    Path target = destination.toAbsolutePath().normalize();
+    if (target.equals(databasePath)) {
+      throw new IllegalArgumentException("Backup destination must differ from the live cache");
+    }
+    Path parent = target.getParent();
+    if (parent != null) Files.createDirectories(parent);
+    Path temporary = target.resolveSibling(target.getFileName().toString() + ".tmp");
+    Files.deleteIfExists(temporary);
+    String quoted = temporary.toString().replace("'", "''");
+    try (Statement statement = connection.createStatement()) {
+      statement.execute("VACUUM INTO '" + quoted + "'");
+    }
+    try {
+      Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING,
+          StandardCopyOption.ATOMIC_MOVE);
+    } catch (java.nio.file.AtomicMoveNotSupportedException ignored) {
+      Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING);
+    }
   }
 
   private static String normalized(String value) {

@@ -22,14 +22,31 @@ if [[ ! -f "$gson_jar" ]]; then
 fi
 echo "$gson_sha256  $gson_jar" | sha256sum --check --status
 rm -rf "$out"
-mkdir -p "$out/classes" "$out/test-classes" "$out/packages"
+mkdir -p "$out/api-classes" "$out/classes" "$out/test-classes" "$out/packages"
+mapfile -t api_sources < <(find "$root/source/compileOnly/java" -name '*.java' -type f | sort)
 mapfile -t main_sources < <(find "$root/source/main/java" -name '*.java' -type f | sort)
 mapfile -t test_sources < <(find "$root/source/test/java" -name '*.java' -type f | sort)
 classpath="$sqlite_jar:$gson_jar"
-javac -encoding UTF-8 -Xlint:all,-classfile --release 8 -classpath "$classpath" -d "$out/classes" "${main_sources[@]}"
-javac -encoding UTF-8 -Xlint:all,-classfile --release 8 -classpath "$out/classes:$classpath" -d "$out/test-classes" "${test_sources[@]}"
-java -classpath "$out/test-classes:$out/classes:$classpath" org.opensagetv.vibe.tmdb.TestRunner
+javac -encoding UTF-8 -Xlint:all --release 8 -d "$out/api-classes" "${api_sources[@]}"
+javac -encoding UTF-8 -Xlint:all,-classfile --release 8 -classpath "$out/api-classes:$classpath" -d "$out/classes" "${main_sources[@]}"
+javac -encoding UTF-8 -Xlint:all,-classfile --release 8 -classpath "$out/api-classes:$out/classes:$classpath" -d "$out/test-classes" "${test_sources[@]}"
+java -classpath "$out/test-classes:$out/api-classes:$out/classes:$classpath" org.opensagetv.vibe.tmdb.TestRunner
+sage_jar="${SAGETV_COMPILE_JAR:-}"
+if [[ -z "$sage_jar" && -f /work/sagetv/build/release/Sage.jar ]]; then
+  sage_jar=/work/sagetv/build/release/Sage.jar
+fi
+if [[ -n "$sage_jar" ]]; then
+  test -f "$sage_jar" || { echo "ERROR: SAGETV_COMPILE_JAR does not exist: $sage_jar" >&2; exit 1; }
+  java -classpath "$out/test-classes:$out/classes:$sage_jar:$classpath" \
+    org.opensagetv.vibe.tmdb.SageTvBinaryCompatibilityProbe
+else
+  echo 'SKIPPED: actual Sage.jar binary-compatibility probe (set SAGETV_COMPILE_JAR)'
+fi
 jar --create --file "$out/packages/OpenSageTVVibeTMDB.jar" -C "$out/classes" .
+if jar tf "$out/packages/OpenSageTVVibeTMDB.jar" | grep -q '^sage/'; then
+  echo 'ERROR: compile-only SageTV API classes leaked into the plugin JAR' >&2
+  exit 1
+fi
 cp "$sqlite_jar" "$out/packages/"
 cp "$gson_jar" "$out/packages/"
 echo "PASS: $out/packages/OpenSageTVVibeTMDB.jar"
