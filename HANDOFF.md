@@ -62,6 +62,8 @@ retain identical Show IDs. The facade has deterministic fake-server coverage
 and passed a live exact-movie metadata probe through the ignored local config.
 The unified integration gate also ran four SageMC and four XMLTV workers for
 4,000 adapter operations and 12,000 shared-service calls without failure.
+The numeric 0.1.0 public package also passed a dependency-empty independent
+clone build on Windows; generated outputs did not dirty the checkout.
 
 ## Next takeover
 

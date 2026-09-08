@@ -8,6 +8,9 @@
 - Added durable TMDB attribution/logo/commercial-use guidance plus public
   contribution and security policies. No copied or modified TMDB logo is
   bundled; consuming UIs must use a current approved asset.
+- Passed a dependency-empty independent-clone Windows build of the exact
+  committed source, including tests, numeric/versioned packaging, repository
+  XML generation, MD5 verification, and SHA-256 output generation.
 - Added the standalone plugin ZIP, service/dependency JARs, documentation,
   exact source revision, and component version to unified release assembly and
   its release-artifact SPDX SBOM.
