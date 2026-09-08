@@ -35,8 +35,9 @@ ten-repository handoff test also pass with this project included. The project
 has the common update and changed-files handoff launchers. Targeted component
 installation/rollback and unified release/SBOM assembly pass. The Apache-2.0
 source is published at `opensagetv-vibe/opensagetv-vibe-tmdb`, and its GitHub
-CI passes. Physical plugin commissioning now passes; the versioned GitHub
-release and upstream V9 manifest submission remain open.
+CI passes. Physical plugin commissioning and the versioned GitHub release now
+pass. The V9 manifest is awaiting upstream review in
+`OpenSageTV/sagetv-plugin-repo#123`.
 
 The public API now includes typed episode/artwork results, cache-only reads,
 deduplicated batch lookup, and consistent SQLite backup. The stock-compatible
@@ -90,6 +91,6 @@ server `.175` was not modified.
 
 ## Next takeover
 
-Publish the versioned GitHub release, verify its attached ZIP checksum, and
-submit the generated manifest to the OpenSageTV plugin repository. Do not
+Monitor `OpenSageTV/sagetv-plugin-repo#123` for upstream review. The remaining
+backlog is the planned reusable library-enrichment worker in `TASKS.md`. Do not
 install or modify anything on stock server `.175`.

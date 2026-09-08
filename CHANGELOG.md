@@ -15,9 +15,15 @@
   credentials.
 - Re-ran the credentialed movie/API and XMLTV facade smoke tests plus the
   cache-only/offline and atomic rollback regression suite.
+- Published the `v0.1.1` GitHub release with the versioned plugin ZIP,
+  repository XML, and SHA-256 manifest. A clean re-download of the release ZIP
+  matched SHA-256
+  `6a84d363e9af3c92f715c24f70ec47ffe0518736a0bf9265a558ae0127a65c08`.
+- Submitted the V9 plugin manifest to the upstream OpenSageTV plugin repository
+  as pull request `OpenSageTV/sagetv-plugin-repo#123`.
 
 - Published the Apache-2.0 source repository at
-  `opensagetv-vibe/opensagetv-vibe-tmdb` without creating a plugin release.
+  `opensagetv-vibe/opensagetv-vibe-tmdb`.
   GitHub CI now passes the complete Java 8-compatible build/package suite and
   an exact credential-free example/config-data gate.
 - Proved plugin binary linkage against the exact read-only `Sage.jar` used by
