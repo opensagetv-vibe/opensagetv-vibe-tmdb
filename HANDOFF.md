@@ -26,8 +26,9 @@ the output contained only a redacted configuration summary.
 The root `dev.cmd all` passes through the installed unified Docker image without
 rebuilding it. The build-environment workflow contract and isolated complete
 ten-repository handoff test also pass with this project included. The project
-has the common update and changed-files handoff launchers; plugin installation,
-runtime component updates, release/SBOM assembly, and public CI are still open.
+has the common update and changed-files handoff launchers. Targeted component
+installation/rollback and unified release/SBOM assembly pass; physical plugin
+commissioning and public CI remain open.
 
 The public API now includes typed episode/artwork results, cache-only reads,
 deduplicated batch lookup, and consistent SQLite backup. The stock-compatible
@@ -41,6 +42,12 @@ TOML example in a stock SageTV layout. It has not yet been commissioned on a
 server; public plugin-repository XML remains an open gate. Targeted component
 validation and atomic install/rollback pass in isolated appdata, including
 preservation of a pre-existing private `tmdb_config.toml`.
+
+Unified release assembly stages the plugin ZIP, service and dependency JARs,
+`release.properties`, and durable documentation under `components/tmdb` and
+`docs/tmdb`. The resolved manifest records this repository's exact commit and
+component version, while the release-artifact SPDX SBOM hashes every staged
+TMDB file.
 
 Schema migration now preserves v1 rows while adding cache metadata in v2.
 Four concurrent writers, cross-connection visibility, future-schema rejection,
@@ -57,6 +64,7 @@ The unified integration gate also ran four SageMC and four XMLTV workers for
 
 ## Next takeover
 
-Commission the plugin lifecycle on isolated server `.232`. Do not install or modify anything
-on stock server `.175`. Finish public plugin metadata, attribution/logo,
-notices, SBOM, clean-checkout CI, and release packaging after those gates pass.
+Commission the plugin lifecycle on isolated server `.232`. Do not install or
+modify anything on stock server `.175`. Finish public plugin metadata,
+attribution/logo, clean-checkout CI, and public release packaging after those
+gates pass.

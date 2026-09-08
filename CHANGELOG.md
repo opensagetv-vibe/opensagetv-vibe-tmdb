@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added the standalone plugin ZIP, service/dependency JARs, documentation,
+  exact source revision, and component version to unified release assembly and
+  its release-artifact SPDX SBOM.
 - Created the standalone reusable TMDB project and its cross-consumer
   ownership boundary.
 - Added strict secret-safe TOML configuration and SQLite schema version 1 with
