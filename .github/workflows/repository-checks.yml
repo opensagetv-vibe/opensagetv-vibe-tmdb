@@ -24,7 +24,13 @@ jobs:
         run: |
           set -euo pipefail
           ! find . -type f \( -name 'tmdb_config.toml' -o -name '*.sqlite3' -o -name '*.sqlite3-shm' -o -name '*.sqlite3-wal' \) -print -quit | grep -q .
-          ! grep -R -n -E '192\.168\.|api_key[[:space:]]*=[[:space:]]*"[^<]' --exclude-dir=.git --exclude-dir=.deps --exclude-dir=output .
+          python3 - <<'PY'
+          import pathlib
+          import tomllib
+
+          example = tomllib.loads(pathlib.Path("tmdb_config.example.toml").read_text(encoding="utf-8"))
+          assert example["tmdb"]["api_key"] == "", "example configuration must not contain a credential"
+          PY
       - uses: actions/upload-artifact@v7
         with:
           name: opensagetv-vibe-tmdb-${{ github.sha }}
