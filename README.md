@@ -48,3 +48,9 @@ the generated XML, then submit that XML to the OpenSageTV plugin repository.
 This product uses the TMDB API but is not endorsed or certified by TMDB.
 Every UI that displays TMDB data or images must also follow
 [`docs/TMDB_ATTRIBUTION.md`](docs/TMDB_ATTRIBUTION.md).
+
+The plugin uses the public stock SageTV 9 lifecycle and does not require a
+Vibe Core patch. See
+[`docs/STOCK_SAGETV_COMPATIBILITY.md`](docs/STOCK_SAGETV_COMPATIBILITY.md) for
+the exact binary-link evidence and the distinction between linkage and a
+physical stock-server installation.

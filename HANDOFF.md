@@ -2,6 +2,12 @@
 
 ## Current state
 
+The plugin passed its binary-link probe against the exact read-only stock `.175`
+`Sage.jar` on 2026-09-08 (SHA-256
+`d76ded981b9bc51e25b9cec821b6abeb771b46c2996dc45e453349b5e703fcb0`).
+This is a compatibility proof only; `.175` was not modified. The durable
+boundary is recorded in `docs/STOCK_SAGETV_COMPATIBILITY.md`.
+
 The standalone project and first cache/configuration foundation exist locally
 and are integrated into the common ten-repository development/handoff workflow.
 The Java 8-compatible sources implement strict `[tmdb]` TOML loading with

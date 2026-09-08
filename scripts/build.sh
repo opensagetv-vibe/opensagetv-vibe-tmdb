@@ -61,8 +61,14 @@ cp "$out/packages/OpenSageTVVibeTMDB.jar" "$sqlite_jar" "$gson_jar" "$plugin_sta
 cp "$root/tmdb_config.example.toml" "$root/plugin.properties" \
   "$plugin_stage/plugins/opensagetv-vibe-tmdb/"
 cp "$root/LICENSE" "$root/THIRD_PARTY_NOTICES.md" "$root/docs/TMDB_ATTRIBUTION.md" \
+  "$root/docs/STOCK_SAGETV_COMPATIBILITY.md" \
   "$plugin_stage/docs/opensagetv-vibe-tmdb/"
 (cd "$plugin_stage" && zip -X -q -r "$out/packages/OpenSageTVVibeTMDB-plugin.zip" .)
+unzip -Z1 "$out/packages/OpenSageTVVibeTMDB-plugin.zip" | \
+  grep -Fxq 'docs/opensagetv-vibe-tmdb/STOCK_SAGETV_COMPATIBILITY.md' || {
+    echo 'ERROR: stock compatibility contract missing from plugin ZIP' >&2
+    exit 1
+  }
 cp "$out/packages/OpenSageTVVibeTMDB-plugin.zip" \
   "$out/packages/OpenSageTVVibeTMDB-plugin-$version.zip"
 python3 "$root/scripts/generate-plugin-manifest.py" \

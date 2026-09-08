@@ -91,7 +91,7 @@ $PluginDocs = Join-Path $PluginStage 'docs/opensagetv-vibe-tmdb'
 New-Item -ItemType Directory -Force -Path $PluginJars,$PluginConfig,$PluginDocs | Out-Null
 Copy-Item -LiteralPath $PluginJar,$SqliteJar,$GsonJar -Destination $PluginJars
 Copy-Item -LiteralPath (Join-Path $ProjectRoot 'tmdb_config.example.toml'),(Join-Path $ProjectRoot 'plugin.properties') -Destination $PluginConfig
-Copy-Item -LiteralPath (Join-Path $ProjectRoot 'LICENSE'),(Join-Path $ProjectRoot 'THIRD_PARTY_NOTICES.md'),(Join-Path $ProjectRoot 'docs/TMDB_ATTRIBUTION.md') -Destination $PluginDocs
+Copy-Item -LiteralPath (Join-Path $ProjectRoot 'LICENSE'),(Join-Path $ProjectRoot 'THIRD_PARTY_NOTICES.md'),(Join-Path $ProjectRoot 'docs/TMDB_ATTRIBUTION.md'),(Join-Path $ProjectRoot 'docs/STOCK_SAGETV_COMPATIBILITY.md') -Destination $PluginDocs
 $PluginZip = Join-Path $Packages 'OpenSageTVVibeTMDB-plugin.zip'
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -103,6 +103,12 @@ try {
       $Archive,$_.FullName,$Relative,[IO.Compression.CompressionLevel]::Optimal)
   }
 } finally { $Archive.Dispose() }
+$PluginEntries = [IO.Compression.ZipFile]::OpenRead($PluginZip)
+try {
+  if (!($PluginEntries.Entries.FullName -contains 'docs/opensagetv-vibe-tmdb/STOCK_SAGETV_COMPATIBILITY.md')) {
+    throw 'Stock compatibility contract missing from plugin ZIP'
+  }
+} finally { $PluginEntries.Dispose() }
 $VersionedPluginZip = Join-Path $Packages "OpenSageTVVibeTMDB-plugin-$Version.zip"
 Copy-Item -LiteralPath $PluginZip -Destination $VersionedPluginZip
 $PluginManifest = Join-Path $Packages 'opensagetv-vibe-tmdb.plugin.xml'

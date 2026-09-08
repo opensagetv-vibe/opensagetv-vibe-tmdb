@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Proved plugin binary linkage against the exact read-only `Sage.jar` used by
+  stock test server `.175`, documented the stock compatibility boundary, and
+  included that document in deterministic plugin packages. No stock server file
+  was modified.
+
 - Prepared numeric version 0.1.0 for stock SageTV version comparison. Builds
   now emit canonical/versioned plugin ZIPs, a standard V9 repository manifest
   with exact MD5, SHA-256 checksums, bundled notices, and current GitHub CI.
