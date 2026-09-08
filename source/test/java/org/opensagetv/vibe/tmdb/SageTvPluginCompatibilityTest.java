@@ -22,9 +22,13 @@ final class SageTvPluginCompatibilityTest {
     require(plugin instanceof SageTVPlugin, "stock SageTVPlugin interface");
     plugin.setConfigValue("Configuration file", config.toString());
     plugin.setConfigValue("Enabled", "true");
-    plugin.start();
-    require(OpenSageTVVibeTmdbFacade.isAvailable(), "plugin starts shared service");
+    require(OpenSageTVVibeTmdbFacade.isAvailable(), "enable setting starts shared service immediately");
     require("Running".equals(OpenSageTVVibeTmdbFacade.getStatus()), "redacted plugin status");
+    plugin.setConfigValue("Enabled", "false");
+    require(!OpenSageTVVibeTmdbFacade.isAvailable(), "disable setting stops shared service immediately");
+    require("Disabled".equals(OpenSageTVVibeTmdbFacade.getStatus()), "disabled plugin status");
+    plugin.setConfigValue("Enabled", "true");
+    require(OpenSageTVVibeTmdbFacade.isAvailable(), "plugin can be re-enabled without a JVM restart");
     plugin.stop();
     require(!OpenSageTVVibeTmdbFacade.isAvailable(), "plugin stops shared service");
     plugin.destroy();

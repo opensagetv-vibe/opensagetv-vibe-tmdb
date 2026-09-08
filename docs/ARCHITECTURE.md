@@ -35,9 +35,9 @@ disambiguation, negative caching, manual mappings, episode refresh, and XMLTV
 enrichment. The Java implementation remains independently structured and adds
 multi-consumer SQLite concurrency and the explicit hard-retention policy.
 
-## Planned service API
+## Service API
 
-The stable service will support movie, TV-series, episode, and person search;
+The stable service supports movie, TV-series, episode, and person search;
 details and artwork metadata; exact/manual resolution; cache-only/offline
 operation; bounded background refresh; diagnostics with no secrets; and batch
 lookups for XMLTV. The SageTV plugin wrapper will expose configuration and a

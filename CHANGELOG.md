@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 0.1.1 - 2026-09-08
+
+- Apply the Enabled setting immediately so the shared TMDB service can be
+  started, stopped, and re-enabled without a SageTV JVM restart.
+- Reload the service immediately when its configuration-file path changes
+  while the plugin is enabled.
+- Commissioned the stock-compatible plugin update on isolated SageTV server
+  `.232` through the normal SageTV plugin manager. The guarded restart loaded
+  version 0.1.1 as Enabled/Running, SageMC returned live search results and
+  details/artwork, and the shared SQLite WAL cache grew without exposing
+  credentials.
+- Re-ran the credentialed movie/API and XMLTV facade smoke tests plus the
+  cache-only/offline and atomic rollback regression suite.
+
 - Published the Apache-2.0 source repository at
   `opensagetv-vibe/opensagetv-vibe-tmdb` without creating a plugin release.
   GitHub CI now passes the complete Java 8-compatible build/package suite and

@@ -85,9 +85,20 @@ public final class OpenSageTVVibeTmdbPlugin implements SageTVPlugin {
   @Override
   public synchronized void setConfigValue(String setting, String value) {
     if (ENABLED.equals(setting)) {
-      Sage.put(PREFIX + "enabled", Boolean.toString(Boolean.parseBoolean(value)));
+      boolean enabled = Boolean.parseBoolean(value);
+      Sage.put(PREFIX + "enabled", Boolean.toString(enabled));
+      if (enabled) {
+        start();
+      } else {
+        stop();
+        status = "Disabled";
+      }
     } else if (CONFIGURATION_FILE.equals(setting) && value != null && !value.trim().isEmpty()) {
       Sage.put(PREFIX + "configuration_file", value.trim());
+      if (Boolean.parseBoolean(Sage.get(PREFIX + "enabled", "false"))) {
+        stop();
+        start();
+      }
     }
   }
 

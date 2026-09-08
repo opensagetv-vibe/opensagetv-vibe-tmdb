@@ -6,6 +6,7 @@ import hashlib
 import pathlib
 import re
 import xml.etree.ElementTree as ET
+import zipfile
 
 
 def md5(path):
@@ -28,6 +29,21 @@ def main():
     package = pathlib.Path(args.package)
     if not package.is_file() or package.stat().st_size == 0:
         raise SystemExit(f"plugin package does not exist or is empty: {package}")
+
+    with zipfile.ZipFile(package) as archive:
+        members = [name.replace("\\", "/") for name in archive.namelist()]
+    if not members or any(
+        name.startswith("/") or name.startswith("../") or "/../" in name
+        for name in members
+    ):
+        raise SystemExit("plugin package has an empty or unsafe root-relative layout")
+    required_roots = {"JARs/", "plugins/", "docs/"}
+    present_roots = {
+        root for root in required_roots if any(name.startswith(root) for name in members)
+    }
+    if present_roots != required_roots:
+        missing = ", ".join(sorted(required_roots - present_roots))
+        raise SystemExit(f"plugin package lacks required root paths: {missing}")
 
     location = (
         "https://github.com/opensagetv-vibe/opensagetv-vibe-tmdb/"
@@ -54,7 +70,11 @@ def main():
         ET.SubElement(dependency, kind)
         ET.SubElement(dependency, "MinVersion").text = minimum
     package_element = ET.SubElement(root, "Package")
-    ET.SubElement(package_element, "PackageType").text = "JAR"
+    # This is one root-relative archive containing JARs/, plugins/, and docs/.
+    # Stock SageTV extracts JAR packages under JARs/, which would incorrectly
+    # produce JARs/JARs/... for this layout. System packages extract relative
+    # to the SageTV server root and still trigger the JAR-loader refresh.
+    ET.SubElement(package_element, "PackageType").text = "System"
     ET.SubElement(package_element, "Location").text = location
     ET.SubElement(package_element, "MD5").text = md5(package)
     ET.SubElement(root, "ReleaseNotes").text = (
@@ -66,7 +86,11 @@ def main():
     output.parent.mkdir(parents=True, exist_ok=True)
     ET.ElementTree(root).write(output, encoding="UTF-8", xml_declaration=True)
     parsed = ET.parse(output).getroot()
-    if parsed.findtext("Version") != args.version or parsed.findtext("Package/MD5") != md5(package):
+    if (
+        parsed.findtext("Version") != args.version
+        or parsed.findtext("Package/PackageType") != "System"
+        or parsed.findtext("Package/MD5") != md5(package)
+    ):
         raise SystemExit("generated SageTV plugin manifest failed verification")
 
 

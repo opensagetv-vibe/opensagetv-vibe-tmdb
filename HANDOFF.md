@@ -35,8 +35,8 @@ ten-repository handoff test also pass with this project included. The project
 has the common update and changed-files handoff launchers. Targeted component
 installation/rollback and unified release/SBOM assembly pass. The Apache-2.0
 source is published at `opensagetv-vibe/opensagetv-vibe-tmdb`, and its GitHub
-CI passes; physical plugin commissioning and a versioned plugin release remain
-open.
+CI passes. Physical plugin commissioning now passes; the versioned GitHub
+release and upstream V9 manifest submission remain open.
 
 The public API now includes typed episode/artwork results, cache-only reads,
 deduplicated batch lookup, and consistent SQLite backup. The stock-compatible
@@ -48,9 +48,10 @@ API classes never enter `OpenSageTVVibeTMDB.jar`.
 and SQLite JDBC dependencies, plugin metadata, and only the credential-free
 TOML example in a stock SageTV layout. The build also emits a numeric-versioned
 ZIP, verified SHA-256 set, and standard SageTV V9 repository XML with its exact
-package MD5. It has not yet been commissioned on a server. Targeted component
-validation and atomic install/rollback pass in isolated appdata, including
-preservation of a pre-existing private `tmdb_config.toml`.
+package MD5. Version 0.1.1 was installed through SageTV's normal plugin-update
+path on isolated server `.232`; the required restart completed, the plugin
+loaded Enabled/Running, and the pre-existing private `tmdb_config.toml` was
+preserved.
 
 Unified release assembly stages the plugin ZIP, service and dependency JARs,
 `release.properties`, and durable documentation under `components/tmdb` and
@@ -73,19 +74,22 @@ The unified integration gate also ran four SageMC and four XMLTV workers for
 The numeric 0.1.0 public package also passed a dependency-empty independent
 clone build on Windows; generated outputs did not dirty the checkout.
 
-The exact `e0f7d388cc05` component archive and checksum are staged, but not
-activated, under isolated `.232` appdata at `.component-staging/remote/`. The
-private ignored TOML is staged only as
-`server/plugins/opensagetv-vibe-tmdb/tmdb_config.toml`; it was not copied into
-source, output, or release media. No live JAR or Sage property was changed.
-Activation requires executing the guarded installer on the Unraid host and a
-controlled SageTV container/JVM restart. This workstation currently has SMB
-appdata access but no authorized SSH/container-control route, and `.232` does
-not expose web/Sagex control.
+On 2026-09-08 the local development manifest exposed version 0.1.1 only to the
+isolated `.232` plugin repository. SageTV staged the JAR replacement, presented
+its standard restart prompt, and restarted the JVM safely. The plugin screen
+then reported `Enabled=True` and `Status=Running`. A physical SageMC lookup for
+`Enough (2002)` returned 40 results, detailed metadata, and poster artwork;
+the SQLite WAL grew from 45,352 to 193,672 bytes. Evidence screenshots are
+`20260908-222816_tmdb-config-011-running.png`,
+`20260908-223351_tmdb-search-dialog.png`, and
+`20260908-223432_tmdb-enough-details-artwork.png` in the Android project's
+ignored `artifacts/firetv` directory. The credentialed API/XMLTV facade smoke
+test and deterministic cache-only/offline/rollback tests also pass. No source,
+output, log, or release artifact contains the private credentials, and stock
+server `.175` was not modified.
 
 ## Next takeover
 
-Commission the plugin lifecycle on isolated server `.232`. Do not install or
-modify anything on stock server `.175`. After that physical gate, publish the
-versioned GitHub release and submit the generated manifest to the OpenSageTV
-plugin repository.
+Publish the versioned GitHub release, verify its attached ZIP checksum, and
+submit the generated manifest to the OpenSageTV plugin repository. Do not
+install or modify anything on stock server `.175`.
