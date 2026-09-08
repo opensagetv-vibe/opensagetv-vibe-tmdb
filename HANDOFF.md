@@ -65,6 +65,16 @@ The unified integration gate also ran four SageMC and four XMLTV workers for
 The numeric 0.1.0 public package also passed a dependency-empty independent
 clone build on Windows; generated outputs did not dirty the checkout.
 
+The exact `e0f7d388cc05` component archive and checksum are staged, but not
+activated, under isolated `.232` appdata at `.component-staging/remote/`. The
+private ignored TOML is staged only as
+`server/plugins/opensagetv-vibe-tmdb/tmdb_config.toml`; it was not copied into
+source, output, or release media. No live JAR or Sage property was changed.
+Activation requires executing the guarded installer on the Unraid host and a
+controlled SageTV container/JVM restart. This workstation currently has SMB
+appdata access but no authorized SSH/container-control route, and `.232` does
+not expose web/Sagex control.
+
 ## Next takeover
 
 Commission the plugin lifecycle on isolated server `.232`. Do not install or

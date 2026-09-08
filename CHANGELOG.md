@@ -11,6 +11,9 @@
 - Passed a dependency-empty independent-clone Windows build of the exact
   committed source, including tests, numeric/versioned packaging, repository
   XML generation, MD5 verification, and SHA-256 output generation.
+- Staged the exact component archive/checksum and private runtime TOML in the
+  isolated `.232` appdata tree without changing live JARs or stock `.175`.
+  Host-side guarded install/restart and runtime verification remain pending.
 - Added the standalone plugin ZIP, service/dependency JARs, documentation,
   exact source revision, and component version to unified release assembly and
   its release-artifact SPDX SBOM.
