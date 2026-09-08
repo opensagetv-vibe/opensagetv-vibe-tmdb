@@ -4,6 +4,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 
 final class TmdbCacheTest {
   static void run() throws Exception {
@@ -88,6 +93,10 @@ final class TmdbCacheTest {
           "independent connections share WAL state");
     }
 
+    testConcurrentWriters(database.resolveSibling("concurrent.sqlite3"), now);
+    testVersionOneMigration(database.resolveSibling("legacy-v1.sqlite3"), now);
+    testFutureSchemaRejection(database.resolveSibling("future.sqlite3"));
+
     Path corrupt = database.resolveSibling("corrupt.sqlite3");
     Files.write(corrupt, "not a sqlite database".getBytes(StandardCharsets.UTF_8));
     try {
@@ -95,6 +104,80 @@ final class TmdbCacheTest {
       throw new AssertionError("corrupt database should fail safely");
     } catch (java.sql.SQLException expected) {
       require(expected.getMessage() != null, "corrupt database diagnostic");
+    }
+  }
+
+  private static void testConcurrentWriters(final Path database, final long now) throws Exception {
+    final int writers = 4;
+    final int entries = 20;
+    final CountDownLatch ready = new CountDownLatch(writers);
+    final CountDownLatch start = new CountDownLatch(1);
+    final AtomicReference<Throwable> failure = new AtomicReference<Throwable>();
+    Thread[] threads = new Thread[writers];
+    for (int writer = 0; writer < writers; writer++) {
+      final int writerId = writer;
+      threads[writer] = new Thread(new Runnable() {
+        public void run() {
+          ready.countDown();
+          try {
+            start.await();
+            try (TmdbCache cache = new TmdbCache(database)) {
+              for (int entry = 0; entry < entries; entry++) {
+                cache.putResource("writer:" + writerId + ":" + entry, "tv", null,
+                    "test", "en-US", "US", "", "{}", now,
+                    CachePolicy.DEFAULT_SEARCH_TTL_SECONDS);
+              }
+            }
+          } catch (Throwable error) {
+            failure.compareAndSet(null, error);
+          }
+        }
+      }, "tmdb-cache-writer-" + writer);
+      threads[writer].start();
+    }
+    ready.await();
+    start.countDown();
+    for (Thread thread : threads) thread.join(10000L);
+    if (failure.get() != null) throw new AssertionError("concurrent cache write", failure.get());
+    try (TmdbCache cache = new TmdbCache(database)) {
+      for (int writer = 0; writer < writers; writer++) {
+        for (int entry = 0; entry < entries; entry++) {
+          require(cache.getResource("writer:" + writer + ":" + entry, now + 1).isPresent(),
+              "concurrent row " + writer + ":" + entry);
+        }
+      }
+    }
+  }
+
+  private static void testVersionOneMigration(Path database, long now) throws Exception {
+    try (TmdbCache cache = new TmdbCache(database)) {
+      cache.putResource("legacy", "movie", Long.valueOf(10), "details", "en-US", "US", "",
+          "{\"id\":10}", now, CachePolicy.DEFAULT_DETAILS_TTL_SECONDS);
+    }
+    try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath());
+        Statement statement = connection.createStatement()) {
+      statement.execute("DROP TABLE cache_metadata");
+      statement.execute("PRAGMA user_version=1");
+    }
+    try (TmdbCache migrated = new TmdbCache(database)) {
+      require(migrated.schemaVersion() == TmdbCache.SCHEMA_VERSION, "v1 to v2 migration");
+      require(migrated.getResource("legacy", now + 1).isPresent(), "migration preserves cache rows");
+    }
+  }
+
+  private static void testFutureSchemaRejection(Path database) throws Exception {
+    try (TmdbCache cache = new TmdbCache(database)) {
+      require(cache.schemaVersion() == TmdbCache.SCHEMA_VERSION, "future fixture baseline");
+    }
+    try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath());
+        Statement statement = connection.createStatement()) {
+      statement.execute("PRAGMA user_version=99");
+    }
+    try {
+      new TmdbCache(database);
+      throw new AssertionError("future schema should be rejected");
+    } catch (java.sql.SQLException expected) {
+      require(expected.getMessage().contains("newer than supported"), "future schema diagnostic");
     }
   }
 

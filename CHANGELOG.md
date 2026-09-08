@@ -32,3 +32,6 @@
 - Added a credential-free stock SageTV plugin archive containing the service,
   pinned runtime dependency JARs, plugin metadata, and example TOML in the
   standard `JARs/` and `plugins/` layout.
+- Migrated the cache to schema 2 with preserved v1 data and metadata ownership.
+  Added concurrent-writer, cross-connection, future-schema, corrupt-database,
+  backup, and hard-retention tests; five repeated full runs pass.

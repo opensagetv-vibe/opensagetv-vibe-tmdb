@@ -16,7 +16,8 @@ import java.util.Optional;
 
 /** Single-owner SQLite cache shared by SageMC, XMLTV, and later metadata consumers. */
 public final class TmdbCache implements Closeable {
-  public static final int SCHEMA_VERSION = 1;
+  public static final int SCHEMA_VERSION = 2;
+  private static final Object INITIALIZATION_LOCK = new Object();
   private final Path databasePath;
   private final Connection connection;
 
@@ -34,8 +35,10 @@ public final class TmdbCache implements Closeable {
     }
     connection = DriverManager.getConnection("jdbc:sqlite:" + absolute);
     try {
-      configure();
-      migrate();
+      synchronized (INITIALIZATION_LOCK) {
+        configure();
+        migrate();
+      }
     } catch (SQLException error) {
       try {
         connection.close();
@@ -50,7 +53,11 @@ public final class TmdbCache implements Closeable {
     try (Statement statement = connection.createStatement()) {
       statement.execute("PRAGMA foreign_keys=ON");
       statement.execute("PRAGMA busy_timeout=5000");
-      statement.execute("PRAGMA journal_mode=WAL");
+      boolean wal;
+      try (ResultSet result = statement.executeQuery("PRAGMA journal_mode")) {
+        wal = result.next() && "wal".equalsIgnoreCase(result.getString(1));
+      }
+      if (!wal) statement.execute("PRAGMA journal_mode=WAL");
       statement.execute("PRAGMA synchronous=NORMAL");
     }
   }
@@ -86,8 +93,18 @@ public final class TmdbCache implements Closeable {
                 + "media_type TEXT NOT NULL, normalized_title TEXT NOT NULL, release_year INTEGER NOT NULL DEFAULT 0, "
                 + "tmdb_id INTEGER NOT NULL, display_title TEXT NOT NULL, updated_at INTEGER NOT NULL, "
                 + "PRIMARY KEY(media_type, normalized_title, release_year))");
-        statement.execute("PRAGMA user_version=" + SCHEMA_VERSION);
+        current = 1;
       }
+      if (current == 1) {
+        statement.execute(
+            "CREATE TABLE IF NOT EXISTS cache_metadata ("
+                + "metadata_key TEXT PRIMARY KEY, metadata_value TEXT NOT NULL, updated_at INTEGER NOT NULL)");
+        statement.execute(
+            "INSERT OR REPLACE INTO cache_metadata(metadata_key,metadata_value,updated_at) "
+                + "VALUES('schema','2',strftime('%s','now'))");
+        current = 2;
+      }
+      statement.execute("PRAGMA user_version=" + current);
       connection.commit();
     } catch (SQLException error) {
       connection.rollback();

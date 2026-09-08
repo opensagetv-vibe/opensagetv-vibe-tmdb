@@ -5,8 +5,8 @@
 The standalone project and first cache/configuration foundation exist locally
 and are integrated into the common ten-repository development/handoff workflow.
 The Java 8-compatible sources implement strict `[tmdb]` TOML loading with
-redacted summaries and SQLite schema version 1 with WAL, busy timeout,
-transactional initialization, positive/negative lookup cache, generic JSON
+redacted summaries and SQLite schema version 2 with WAL, busy timeout,
+transactional migration, positive/negative lookup cache, generic JSON
 resource cache, manual mappings, expiry, and a 180-day maximum retention.
 
 The dependency is pinned to Xerial SQLite JDBC 3.53.2.1 with SHA-256
@@ -40,6 +40,13 @@ and SQLite JDBC dependencies, plugin metadata, and only the credential-free
 TOML example in a stock SageTV layout. It has not yet been installed on a
 server; component install/rollback and public plugin-repository XML remain
 open gates.
+
+Schema migration now preserves v1 rows while adding cache metadata in v2.
+Four concurrent writers, cross-connection visibility, future-schema rejection,
+corrupt-database failure, consistent backup, retention bounds, and five repeated
+full cache/API/plugin runs pass. An abrupt external process-kill recovery test
+is still intentionally tracked rather than inferred from these in-process
+checks.
 
 ## Next takeover
 

@@ -6,7 +6,7 @@ credentials, request pacing, retry behavior, manual mappings, and a persistent
 SQLite cache.
 
 The service provides strict local TOML configuration and a
-versioned SQLite cache with WAL, a bounded busy timeout, transactional schema
+versioned SQLite schema 2 cache with WAL, a bounded busy timeout, transactional schema
 migration, positive/negative lookup rows, manual mappings, expiry, and a hard
 180-day retention ceiling. Its Java API supports movie/TV/person search,
 exact and manual resolution, raw details, typed episode and artwork results,
