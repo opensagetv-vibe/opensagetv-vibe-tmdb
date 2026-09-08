@@ -11,8 +11,11 @@ migration, positive/negative lookup rows, manual mappings, expiry, and a hard
 180-day retention ceiling. Its Java API supports movie/TV/person search,
 exact and manual resolution, raw details, typed episode and artwork results,
 cache-only offline reads, consistent cache backup, and deduplicated batch
-lookups for XMLTV. The SageTV plugin wrapper, SageMC adapter, and XMLTV adapter
-remain tracked in `TASKS.md`; consumers must never read SQLite directly.
+lookups. A stock SageTV plugin wrapper owns the process-wide service. SageMC
+uses the typed Java API, while XMLTV uses the small scalar
+`getProgrammeMetadata` facade so neither consumer reads credentials or SQLite
+directly. The XMLTV facade returns an empty result for no or ambiguous matches;
+consumers retain their source metadata in that case.
 
 Copy `tmdb_config.example.toml` to an ignored `tmdb_config.toml`. The existing
 `C:\TMP_SAGETV_DOCKER\hdhr_atsc_epg\tmdb_config.toml` may be supplied locally

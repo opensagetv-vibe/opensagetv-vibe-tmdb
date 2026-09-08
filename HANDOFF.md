@@ -47,12 +47,16 @@ Four concurrent writers, cross-connection visibility, future-schema rejection,
 corrupt-database failure, consistent backup, retention bounds, and five repeated
 full cache/API/plugin runs pass. A child process also writes into WAL and exits
 through `Runtime.halt()` without closing; the parent reopens and recovers the
-committed row. Cross-consumer adapter stress remains pending until the SageMC
-and XMLTV adapters exist.
+committed row. Both consumer adapters now exist: SageMC's 39 historical
+SageIMDb call families use the typed shared service, and XMLTV has a bounded,
+deduplicated, fill-only, fail-open facade consumer whose opt-in/off imports
+retain identical Show IDs. The facade has deterministic fake-server coverage
+and passed a live exact-movie metadata probe through the ignored local config.
+Longer simultaneous-consumer stress remains pending.
 
 ## Next takeover
 
-Run `dev.cmd all`, then implement thin SageMC and XMLTV adapters against the
-public service interface. Do not let either consumer access SQLite directly.
-Add the component-only install/update path once the plugin descriptor and exact
-SageTV JAR deployment layout are defined.
+Run the longer simultaneous SageMC/XMLTV consumer stress, then commission the
+plugin lifecycle on isolated server `.232`. Do not install or modify anything
+on stock server `.175`. Finish public plugin metadata, attribution/logo,
+notices, SBOM, clean-checkout CI, and release packaging after those gates pass.

@@ -41,3 +41,8 @@
 - Added the TMDB artifact to the verified component-only appdata update path.
   Targeted package validation and atomic install/rollback pass while preserving
   an existing private configuration file and avoiding Docker image rebuilds.
+- Added a consumer-neutral programme metadata facade for XMLTV and deterministic
+  coverage for title/details/episode/country/genre mapping. The opt-in XMLTV
+  adapter and all 39 SageMC presentation-call migrations now consume the shared
+  service without owning credentials, HTTP transport, or SQLite access. A live
+  credentialed exact-movie facade smoke test passes without exposing the key.

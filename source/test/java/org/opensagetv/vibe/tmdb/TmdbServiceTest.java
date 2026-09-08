@@ -5,6 +5,7 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.opensagetv.vibe.tmdb.plugin.OpenSageTVVibeTmdbFacade;
 
 final class TmdbServiceTest {
   static void run() throws Exception {
@@ -44,7 +46,10 @@ final class TmdbServiceTest {
           return;
         }
         if (path.equals("/3/tv/101")) {
-          send(exchange, 200, "{\"id\":101,\"name\":\"Sample Show\"}");
+          send(exchange, 200, "{\"id\":101,\"name\":\"Sample Show\","
+              + "\"overview\":\"Series description\",\"first_air_date\":\"2026-01-02\","
+              + "\"original_language\":\"en\",\"origin_country\":[\"US\"],"
+              + "\"genres\":[{\"id\":18,\"name\":\"Drama\"}]}");
           return;
         }
         if (path.equals("/3/tv/101/season/2/episode/3")) {
@@ -102,6 +107,28 @@ final class TmdbServiceTest {
       require(service.resolveExactCached(MediaType.TV, "Sample Show", Integer.valueOf(2026))
           .isPresent(), "cache-only lookup");
 
+      Field registryService = TmdbServiceRegistry.class.getDeclaredField("service");
+      registryService.setAccessible(true);
+      registryService.set(null, service);
+      try {
+        Map<String, String> programme = rows(OpenSageTVVibeTmdbFacade.getProgrammeMetadata(
+            "tv", "Sample Show", 2026, 2, 3));
+        require("101".equals(programme.get("tmdb_id")), "programme TMDB id");
+        require("Series description".equals(programme.get("description")),
+            "programme description");
+        require("2026".equals(programme.get("year")), "programme year");
+        require("Drama".equals(programme.get("genres")), "programme genres");
+        require("US".equals(programme.get("countries")), "programme origin countries");
+        require("Example Episode".equals(programme.get("episode_name")),
+            "programme episode name");
+        require("Plot".equals(programme.get("episode_description")),
+            "programme episode description");
+        require("2026-02-03".equals(programme.get("episode_air_date")),
+            "programme episode air date");
+      } finally {
+        registryService.set(null, null);
+      }
+
       int beforeMissing = requests.get();
       require(service.resolveExact(MediaType.TV, "Missing", null).getStatus() == LookupResult.Status.NO_MATCH,
           "negative resolution");
@@ -130,6 +157,14 @@ final class TmdbServiceTest {
     exchange.getResponseHeaders().add("Content-Type", "application/json");
     exchange.sendResponseHeaders(status, bytes.length);
     try (OutputStream output = exchange.getResponseBody()) { output.write(bytes); }
+  }
+
+  private static Map<String, String> rows(String[][] rows) {
+    Map<String, String> values = new java.util.LinkedHashMap<String, String>();
+    for (String[] row : rows) {
+      if (row != null && row.length >= 2) values.put(row[0], row[1]);
+    }
+    return values;
   }
 
   private static void require(boolean condition, String message) {

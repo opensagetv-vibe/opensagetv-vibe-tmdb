@@ -8,10 +8,6 @@ in `CHANGELOG.md` and `HANDOFF.md`.
   abrupt external-process recovery, cross-connection visibility,
   corrupt/future database rejection, cleanup, backup, and retention boundaries
   already pass.
-- [ ] Add the SageMC adapter, migrate useful `sagemc/imdb_*` preferences, and
-  replace broken SageIMDb screens without coupling the STV to HTTP or SQLite.
-- [ ] Add opt-in XMLTV enrichment that preserves existing feed metadata,
-  stable Show IDs, and successful imports when TMDB is absent/offline.
 - [ ] Commission with the ignored local `hdhr_atsc_epg/tmdb_config.toml` and
   synthetic fixtures; test auth failure, 404, 429, timeout, ambiguity,
   negative cache, offline restart, and no-credential behavior.
