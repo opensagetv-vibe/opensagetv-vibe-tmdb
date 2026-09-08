@@ -1,0 +1,12 @@
+[tmdb]
+# Supply either an API Read Access Token or a v3 API key. Never commit the real file.
+api_read_access_token = ""
+api_key = ""
+cache_path = "tmdb-cache.sqlite3"
+language = "en-US"
+region = "US"
+max_requests_per_second = 4.0
+connect_timeout_ms = 10000
+read_timeout_ms = 30000
+retries = 3
+retry_backoff_ms = 1000
