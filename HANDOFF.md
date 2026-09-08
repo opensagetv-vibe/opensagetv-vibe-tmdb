@@ -33,8 +33,10 @@ The root `dev.cmd all` passes through the installed unified Docker image without
 rebuilding it. The build-environment workflow contract and isolated complete
 ten-repository handoff test also pass with this project included. The project
 has the common update and changed-files handoff launchers. Targeted component
-installation/rollback and unified release/SBOM assembly pass; physical plugin
-commissioning and public CI remain open.
+installation/rollback and unified release/SBOM assembly pass. The Apache-2.0
+source is published at `opensagetv-vibe/opensagetv-vibe-tmdb`, and its GitHub
+CI passes; physical plugin commissioning and a versioned plugin release remain
+open.
 
 The public API now includes typed episode/artwork results, cache-only reads,
 deduplicated batch lookup, and consistent SQLite backup. The stock-compatible

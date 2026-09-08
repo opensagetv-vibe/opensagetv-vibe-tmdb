@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Published the Apache-2.0 source repository at
+  `opensagetv-vibe/opensagetv-vibe-tmdb` without creating a plugin release.
+  GitHub CI now passes the complete Java 8-compatible build/package suite and
+  an exact credential-free example/config-data gate.
 - Proved plugin binary linkage against the exact read-only `Sage.jar` used by
   stock test server `.175`, documented the stock compatibility boundary, and
   included that document in deterministic plugin packages. No stock server file
