@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Prepared numeric version 0.1.0 for stock SageTV version comparison. Builds
+  now emit canonical/versioned plugin ZIPs, a standard V9 repository manifest
+  with exact MD5, SHA-256 checksums, bundled notices, and current GitHub CI.
+- Added durable TMDB attribution/logo/commercial-use guidance plus public
+  contribution and security policies. No copied or modified TMDB logo is
+  bundled; consuming UIs must use a current approved asset.
 - Added the standalone plugin ZIP, service/dependency JARs, documentation,
   exact source revision, and component version to unified release assembly and
   its release-artifact SPDX SBOM.

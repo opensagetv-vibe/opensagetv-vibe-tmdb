@@ -11,6 +11,11 @@ gson_version=2.14.0
 gson_sha256=2cbd119bf1961c28788310963dc80ba65f58cdeec1dd139c8bdb1240faa2c36f
 gson_jar="$deps/gson-$gson_version.jar"
 gson_url="https://repo.maven.apache.org/maven2/com/google/code/gson/gson/$gson_version/gson-$gson_version.jar"
+version="$(sed -n 's/^VERSION=//p' "$root/release.properties" | tr -d '\r')"
+[[ "$version" =~ ^[0-9]+([.][0-9]+){1,3}$ ]] || {
+  echo "ERROR: SageTV plugin VERSION must be dotted numeric: $version" >&2
+  exit 1
+}
 
 mkdir -p "$deps"
 if [[ ! -f "$sqlite_jar" ]]; then
@@ -50,10 +55,24 @@ fi
 cp "$sqlite_jar" "$out/packages/"
 cp "$gson_jar" "$out/packages/"
 plugin_stage="$out/plugin-stage"
-mkdir -p "$plugin_stage/JARs" "$plugin_stage/plugins/opensagetv-vibe-tmdb"
+mkdir -p "$plugin_stage/JARs" "$plugin_stage/plugins/opensagetv-vibe-tmdb" \
+  "$plugin_stage/docs/opensagetv-vibe-tmdb"
 cp "$out/packages/OpenSageTVVibeTMDB.jar" "$sqlite_jar" "$gson_jar" "$plugin_stage/JARs/"
 cp "$root/tmdb_config.example.toml" "$root/plugin.properties" \
   "$plugin_stage/plugins/opensagetv-vibe-tmdb/"
+cp "$root/LICENSE" "$root/THIRD_PARTY_NOTICES.md" "$root/docs/TMDB_ATTRIBUTION.md" \
+  "$plugin_stage/docs/opensagetv-vibe-tmdb/"
 (cd "$plugin_stage" && zip -X -q -r "$out/packages/OpenSageTVVibeTMDB-plugin.zip" .)
+cp "$out/packages/OpenSageTVVibeTMDB-plugin.zip" \
+  "$out/packages/OpenSageTVVibeTMDB-plugin-$version.zip"
+python3 "$root/scripts/generate-plugin-manifest.py" \
+  --version "$version" \
+  --package "$out/packages/OpenSageTVVibeTMDB-plugin-$version.zip" \
+  --output "$out/packages/opensagetv-vibe-tmdb.plugin.xml"
+(cd "$out/packages" && find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%P\0' | \
+  sort -z | xargs -0 sha256sum > SHA256SUMS)
+(cd "$out/packages" && sha256sum -c SHA256SUMS >/dev/null)
 echo "PASS: $out/packages/OpenSageTVVibeTMDB.jar"
 echo "PASS: $out/packages/OpenSageTVVibeTMDB-plugin.zip"
+echo "PASS: $out/packages/OpenSageTVVibeTMDB-plugin-$version.zip"
+echo "PASS: $out/packages/opensagetv-vibe-tmdb.plugin.xml"

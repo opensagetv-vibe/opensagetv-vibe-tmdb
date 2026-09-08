@@ -1,0 +1,33 @@
+name: Repository checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '11'
+      - name: Build, test, and package Java 8-compatible plugin
+        run: bash scripts/build.sh
+      - name: Reject private credentials and cache data
+        run: |
+          set -euo pipefail
+          ! find . -type f \( -name 'tmdb_config.toml' -o -name '*.sqlite3' -o -name '*.sqlite3-shm' -o -name '*.sqlite3-wal' \) -print -quit | grep -q .
+          ! grep -R -n -E '192\.168\.|api_key[[:space:]]*=[[:space:]]*"[^<]' --exclude-dir=.git --exclude-dir=.deps --exclude-dir=output .
+      - uses: actions/upload-artifact@v7
+        with:
+          name: opensagetv-vibe-tmdb-${{ github.sha }}
+          path: output/packages/
+          if-no-files-found: error
+          retention-days: 14

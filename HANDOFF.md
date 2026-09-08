@@ -38,8 +38,9 @@ probe against Core's actual `Sage.jar` and verifies that compile-only `sage.*`
 API classes never enter `OpenSageTVVibeTMDB.jar`.
 `output/packages/OpenSageTVVibeTMDB-plugin.zip` packages that JAR, pinned Gson
 and SQLite JDBC dependencies, plugin metadata, and only the credential-free
-TOML example in a stock SageTV layout. It has not yet been commissioned on a
-server; public plugin-repository XML remains an open gate. Targeted component
+TOML example in a stock SageTV layout. The build also emits a numeric-versioned
+ZIP, verified SHA-256 set, and standard SageTV V9 repository XML with its exact
+package MD5. It has not yet been commissioned on a server. Targeted component
 validation and atomic install/rollback pass in isolated appdata, including
 preservation of a pre-existing private `tmdb_config.toml`.
 
@@ -65,6 +66,6 @@ The unified integration gate also ran four SageMC and four XMLTV workers for
 ## Next takeover
 
 Commission the plugin lifecycle on isolated server `.232`. Do not install or
-modify anything on stock server `.175`. Finish public plugin metadata,
-attribution/logo, clean-checkout CI, and public release packaging after those
-gates pass.
+modify anything on stock server `.175`. After that physical gate, publish the
+versioned GitHub release and submit the generated manifest to the OpenSageTV
+plugin repository.

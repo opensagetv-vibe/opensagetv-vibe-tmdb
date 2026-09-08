@@ -16,5 +16,7 @@ License 2.0. Source and notices: <https://github.com/google/gson>.
 ## The Movie Database
 
 This product uses the TMDB API but is not endorsed or certified by TMDB.
-Consumers must display the attribution required by TMDB and use an approved
-TMDB logo where the applicable UI guidelines require it.
+Consumers must display the attribution required by TMDB and use an approved,
+unmodified TMDB logo in an About or Credits area. See
+`docs/TMDB_ATTRIBUTION.md`. TMDB content is not included in the source release,
+and cached API content is bounded to a maximum retention of 180 days.

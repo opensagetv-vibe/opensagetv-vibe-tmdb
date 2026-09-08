@@ -10,6 +10,13 @@ $GsonVersion = '2.14.0'
 $GsonSha256 = '2cbd119bf1961c28788310963dc80ba65f58cdeec1dd139c8bdb1240faa2c36f'
 $GsonJar = Join-Path $Deps "gson-$GsonVersion.jar"
 $GsonUrl = "https://repo.maven.apache.org/maven2/com/google/code/gson/gson/$GsonVersion/gson-$GsonVersion.jar"
+$ReleaseProperties = Get-Content -LiteralPath (Join-Path $ProjectRoot 'release.properties')
+$VersionLine = @($ReleaseProperties | Where-Object { $_ -match '^VERSION=' })
+if ($VersionLine.Count -ne 1) { throw 'release.properties must contain exactly one VERSION' }
+$Version = $VersionLine[0].Substring('VERSION='.Length).Trim()
+if ($Version -notmatch '^\d+(?:\.\d+){1,3}$') {
+  throw "SageTV plugin VERSION must be dotted numeric: $Version"
+}
 
 New-Item -ItemType Directory -Force -Path $Deps | Out-Null
 $DependencySpecs = @(
@@ -80,9 +87,11 @@ Copy-Item -LiteralPath $GsonJar -Destination $Packages
 $PluginStage = Join-Path $Output 'plugin-stage'
 $PluginJars = Join-Path $PluginStage 'JARs'
 $PluginConfig = Join-Path $PluginStage 'plugins/opensagetv-vibe-tmdb'
-New-Item -ItemType Directory -Force -Path $PluginJars,$PluginConfig | Out-Null
+$PluginDocs = Join-Path $PluginStage 'docs/opensagetv-vibe-tmdb'
+New-Item -ItemType Directory -Force -Path $PluginJars,$PluginConfig,$PluginDocs | Out-Null
 Copy-Item -LiteralPath $PluginJar,$SqliteJar,$GsonJar -Destination $PluginJars
 Copy-Item -LiteralPath (Join-Path $ProjectRoot 'tmdb_config.example.toml'),(Join-Path $ProjectRoot 'plugin.properties') -Destination $PluginConfig
+Copy-Item -LiteralPath (Join-Path $ProjectRoot 'LICENSE'),(Join-Path $ProjectRoot 'THIRD_PARTY_NOTICES.md'),(Join-Path $ProjectRoot 'docs/TMDB_ATTRIBUTION.md') -Destination $PluginDocs
 $PluginZip = Join-Path $Packages 'OpenSageTVVibeTMDB-plugin.zip'
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -94,5 +103,16 @@ try {
       $Archive,$_.FullName,$Relative,[IO.Compression.CompressionLevel]::Optimal)
   }
 } finally { $Archive.Dispose() }
+$VersionedPluginZip = Join-Path $Packages "OpenSageTVVibeTMDB-plugin-$Version.zip"
+Copy-Item -LiteralPath $PluginZip -Destination $VersionedPluginZip
+$PluginManifest = Join-Path $Packages 'opensagetv-vibe-tmdb.plugin.xml'
+& python (Join-Path $ProjectRoot 'scripts/generate-plugin-manifest.py') --version $Version --package $VersionedPluginZip --output $PluginManifest
+if ($LASTEXITCODE) { throw 'SageTV plugin repository manifest generation failed' }
+$Checksums = Get-ChildItem -LiteralPath $Packages -File | Where-Object Name -ne 'SHA256SUMS' | Sort-Object Name | ForEach-Object {
+  '{0}  {1}' -f (Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName).Hash.ToLowerInvariant(),$_.Name
+}
+[IO.File]::WriteAllLines((Join-Path $Packages 'SHA256SUMS'),$Checksums,(New-Object Text.UTF8Encoding($false)))
 Write-Output "PASS: $PluginJar"
 Write-Output "PASS: $PluginZip"
+Write-Output "PASS: $VersionedPluginZip"
+Write-Output "PASS: $PluginManifest"
