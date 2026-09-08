@@ -8,6 +8,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 final class TmdbCacheTest {
@@ -94,6 +95,7 @@ final class TmdbCacheTest {
     }
 
     testConcurrentWriters(database.resolveSibling("concurrent.sqlite3"), now);
+    testAbruptProcessRecovery(database.resolveSibling("abrupt.sqlite3"), now);
     testVersionOneMigration(database.resolveSibling("legacy-v1.sqlite3"), now);
     testFutureSchemaRejection(database.resolveSibling("future.sqlite3"));
 
@@ -104,6 +106,24 @@ final class TmdbCacheTest {
       throw new AssertionError("corrupt database should fail safely");
     } catch (java.sql.SQLException expected) {
       require(expected.getMessage() != null, "corrupt database diagnostic");
+    }
+  }
+
+  private static void testAbruptProcessRecovery(Path database, long now) throws Exception {
+    String javaExecutable = new java.io.File(
+        new java.io.File(System.getProperty("java.home"), "bin"),
+        System.getProperty("os.name").toLowerCase().contains("win") ? "java.exe" : "java")
+        .getAbsolutePath();
+    Process process = new ProcessBuilder(javaExecutable, "-cp", System.getProperty("java.class.path"),
+        TmdbAbruptWriter.class.getName(), database.toString(), Long.toString(now)).start();
+    if (!process.waitFor(10, TimeUnit.SECONDS)) {
+      process.destroyForcibly();
+      throw new AssertionError("abrupt cache writer timed out");
+    }
+    require(process.exitValue() == 0, "abrupt cache writer exit");
+    try (TmdbCache recovered = new TmdbCache(database)) {
+      require(recovered.getResource("abrupt", now + 1).isPresent(),
+          "WAL recovers committed data after abrupt process exit");
     }
   }
 

@@ -44,9 +44,10 @@ open gates.
 Schema migration now preserves v1 rows while adding cache metadata in v2.
 Four concurrent writers, cross-connection visibility, future-schema rejection,
 corrupt-database failure, consistent backup, retention bounds, and five repeated
-full cache/API/plugin runs pass. An abrupt external process-kill recovery test
-is still intentionally tracked rather than inferred from these in-process
-checks.
+full cache/API/plugin runs pass. A child process also writes into WAL and exits
+through `Runtime.halt()` without closing; the parent reopens and recovers the
+committed row. Cross-consumer adapter stress remains pending until the SageMC
+and XMLTV adapters exist.
 
 ## Next takeover
 

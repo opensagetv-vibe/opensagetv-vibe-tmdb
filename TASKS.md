@@ -3,10 +3,11 @@
 This is the only active TMDB backlog. Completed work is removed and recorded
 in `CHANGELOG.md` and `HANDOFF.md`.
 
-- [ ] Add an abrupt external-process termination/restart recovery test and a
-  longer simultaneous SageMC/XMLTV stress run. Transactional v1-to-v2
-  migration, concurrent writers, cross-connection visibility, corrupt/future
-  database rejection, cleanup, backup, and retention boundaries already pass.
+- [ ] Add a longer simultaneous SageMC/XMLTV adapter stress run after both
+  consumers exist. Transactional v1-to-v2 migration, concurrent writers,
+  abrupt external-process recovery, cross-connection visibility,
+  corrupt/future database rejection, cleanup, backup, and retention boundaries
+  already pass.
 - [ ] Add the SageMC adapter, migrate useful `sagemc/imdb_*` preferences, and
   replace broken SageIMDb screens without coupling the STV to HTTP or SQLite.
 - [ ] Add opt-in XMLTV enrichment that preserves existing feed metadata,

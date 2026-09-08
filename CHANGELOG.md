@@ -35,3 +35,6 @@
 - Migrated the cache to schema 2 with preserved v1 data and metadata ownership.
   Added concurrent-writer, cross-connection, future-schema, corrupt-database,
   backup, and hard-retention tests; five repeated full runs pass.
+- Added a child-process regression that commits into WAL and terminates via
+  `Runtime.halt()` without closing SQLite; the parent successfully reopens and
+  recovers the committed cache row.
