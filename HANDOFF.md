@@ -52,11 +52,11 @@ SageIMDb call families use the typed shared service, and XMLTV has a bounded,
 deduplicated, fill-only, fail-open facade consumer whose opt-in/off imports
 retain identical Show IDs. The facade has deterministic fake-server coverage
 and passed a live exact-movie metadata probe through the ignored local config.
-Longer simultaneous-consumer stress remains pending.
+The unified integration gate also ran four SageMC and four XMLTV workers for
+4,000 adapter operations and 12,000 shared-service calls without failure.
 
 ## Next takeover
 
-Run the longer simultaneous SageMC/XMLTV consumer stress, then commission the
-plugin lifecycle on isolated server `.232`. Do not install or modify anything
+Commission the plugin lifecycle on isolated server `.232`. Do not install or modify anything
 on stock server `.175`. Finish public plugin metadata, attribution/logo,
 notices, SBOM, clean-checkout CI, and release packaging after those gates pass.

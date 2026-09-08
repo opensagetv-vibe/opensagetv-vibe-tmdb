@@ -3,11 +3,6 @@
 This is the only active TMDB backlog. Completed work is removed and recorded
 in `CHANGELOG.md` and `HANDOFF.md`.
 
-- [ ] Add a longer simultaneous SageMC/XMLTV adapter stress run after both
-  consumers exist. Transactional v1-to-v2 migration, concurrent writers,
-  abrupt external-process recovery, cross-connection visibility,
-  corrupt/future database rejection, cleanup, backup, and retention boundaries
-  already pass.
 - [ ] Commission with the ignored local `hdhr_atsc_epg/tmdb_config.toml` and
   synthetic fixtures; test auth failure, 404, 429, timeout, ambiguity,
   negative cache, offline restart, and no-credential behavior.

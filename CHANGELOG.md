@@ -46,3 +46,6 @@
   adapter and all 39 SageMC presentation-call migrations now consume the shared
   service without owning credentials, HTTP transport, or SQLite access. A live
   credentialed exact-movie facade smoke test passes without exposing the key.
+- Passed a unified simultaneous-consumer stress using four real SageMC workers
+  and four real XMLTV workers: 4,000 adapter operations and 12,000 calls through
+  one shared service completed without failure or registry-state leakage.
