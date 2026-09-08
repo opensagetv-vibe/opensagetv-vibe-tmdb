@@ -77,4 +77,22 @@ if ($JarEntries | Where-Object { $_ -like 'sage/*' }) {
 }
 Copy-Item -LiteralPath $SqliteJar -Destination $Packages
 Copy-Item -LiteralPath $GsonJar -Destination $Packages
+$PluginStage = Join-Path $Output 'plugin-stage'
+$PluginJars = Join-Path $PluginStage 'JARs'
+$PluginConfig = Join-Path $PluginStage 'plugins/opensagetv-vibe-tmdb'
+New-Item -ItemType Directory -Force -Path $PluginJars,$PluginConfig | Out-Null
+Copy-Item -LiteralPath $PluginJar,$SqliteJar,$GsonJar -Destination $PluginJars
+Copy-Item -LiteralPath (Join-Path $ProjectRoot 'tmdb_config.example.toml'),(Join-Path $ProjectRoot 'plugin.properties') -Destination $PluginConfig
+$PluginZip = Join-Path $Packages 'OpenSageTVVibeTMDB-plugin.zip'
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$Archive = [IO.Compression.ZipFile]::Open($PluginZip,[IO.Compression.ZipArchiveMode]::Create)
+try {
+  Get-ChildItem -LiteralPath $PluginStage -File -Recurse | Sort-Object FullName | ForEach-Object {
+    $Relative = $_.FullName.Substring($PluginStage.Length + 1).Replace('\','/')
+    [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+      $Archive,$_.FullName,$Relative,[IO.Compression.CompressionLevel]::Optimal)
+  }
+} finally { $Archive.Dispose() }
 Write-Output "PASS: $PluginJar"
+Write-Output "PASS: $PluginZip"

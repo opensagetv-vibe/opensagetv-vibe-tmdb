@@ -29,3 +29,6 @@
   small scalar/array facade for Studio consumers. The build proves binary
   linkage against the actual Core `Sage.jar` while excluding compile-only API
   stubs from the packaged plugin JAR.
+- Added a credential-free stock SageTV plugin archive containing the service,
+  pinned runtime dependency JARs, plugin metadata, and example TOML in the
+  standard `JARs/` and `plugins/` layout.

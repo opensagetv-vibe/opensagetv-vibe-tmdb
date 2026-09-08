@@ -49,4 +49,11 @@ if jar tf "$out/packages/OpenSageTVVibeTMDB.jar" | grep -q '^sage/'; then
 fi
 cp "$sqlite_jar" "$out/packages/"
 cp "$gson_jar" "$out/packages/"
+plugin_stage="$out/plugin-stage"
+mkdir -p "$plugin_stage/JARs" "$plugin_stage/plugins/opensagetv-vibe-tmdb"
+cp "$out/packages/OpenSageTVVibeTMDB.jar" "$sqlite_jar" "$gson_jar" "$plugin_stage/JARs/"
+cp "$root/tmdb_config.example.toml" "$root/plugin.properties" \
+  "$plugin_stage/plugins/opensagetv-vibe-tmdb/"
+(cd "$plugin_stage" && zip -X -q -r "$out/packages/OpenSageTVVibeTMDB-plugin.zip" .)
 echo "PASS: $out/packages/OpenSageTVVibeTMDB.jar"
+echo "PASS: $out/packages/OpenSageTVVibeTMDB-plugin.zip"

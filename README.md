@@ -28,6 +28,10 @@ dev.cmd all
 Linux uses `./dev.sh all`. The command delegates to the existing unified Docker
 build environment, targets Java 8 bytecode, and currently
 produces `output/packages/OpenSageTVVibeTMDB.jar` plus the pinned SQLite JDBC
-and Gson runtime dependencies.
+and Gson runtime dependencies. It also creates
+`OpenSageTVVibeTMDB-plugin.zip` with the stock SageTV `JARs/` layout and a
+credential-free configuration example. A real `tmdb_config.toml` must be
+created in `plugins/opensagetv-vibe-tmdb/` after installation; it is never
+included in the ZIP.
 
 This product uses the TMDB API but is not endorsed or certified by TMDB.

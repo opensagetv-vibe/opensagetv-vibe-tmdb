@@ -35,6 +35,11 @@ deduplicated batch lookup, and consistent SQLite backup. The stock-compatible
 Studio facade exposes only safe scalar/array calls. The build runs a separate
 probe against Core's actual `Sage.jar` and verifies that compile-only `sage.*`
 API classes never enter `OpenSageTVVibeTMDB.jar`.
+`output/packages/OpenSageTVVibeTMDB-plugin.zip` packages that JAR, pinned Gson
+and SQLite JDBC dependencies, plugin metadata, and only the credential-free
+TOML example in a stock SageTV layout. It has not yet been installed on a
+server; component install/rollback and public plugin-repository XML remain
+open gates.
 
 ## Next takeover
 
