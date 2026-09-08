@@ -15,8 +15,8 @@ in `CHANGELOG.md` and `HANDOFF.md`.
 - [ ] Commission with the ignored local `hdhr_atsc_epg/tmdb_config.toml` and
   synthetic fixtures; test auth failure, 404, 429, timeout, ambiguity,
   negative cache, offline restart, and no-credential behavior.
-- [ ] Add the SageTV plugin artifact to component-only install/update handling,
-  release packaging, and SBOM generation without rebuilding a development or
-  runtime image for plugin updates.
+- [ ] Add the SageTV plugin artifact to unified release packaging and SBOM
+  generation. Component-only install/update/rollback already passes without
+  rebuilding a development or runtime image.
 - [ ] Add public plugin metadata, required TMDB attribution/logo guidance,
   third-party notices, GitHub CI, clean-checkout proof, and release packaging.

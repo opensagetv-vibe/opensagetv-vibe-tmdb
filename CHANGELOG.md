@@ -38,3 +38,6 @@
 - Added a child-process regression that commits into WAL and terminates via
   `Runtime.halt()` without closing SQLite; the parent successfully reopens and
   recovers the committed cache row.
+- Added the TMDB artifact to the verified component-only appdata update path.
+  Targeted package validation and atomic install/rollback pass while preserving
+  an existing private configuration file and avoiding Docker image rebuilds.

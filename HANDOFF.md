@@ -37,9 +37,10 @@ probe against Core's actual `Sage.jar` and verifies that compile-only `sage.*`
 API classes never enter `OpenSageTVVibeTMDB.jar`.
 `output/packages/OpenSageTVVibeTMDB-plugin.zip` packages that JAR, pinned Gson
 and SQLite JDBC dependencies, plugin metadata, and only the credential-free
-TOML example in a stock SageTV layout. It has not yet been installed on a
-server; component install/rollback and public plugin-repository XML remain
-open gates.
+TOML example in a stock SageTV layout. It has not yet been commissioned on a
+server; public plugin-repository XML remains an open gate. Targeted component
+validation and atomic install/rollback pass in isolated appdata, including
+preservation of a pre-existing private `tmdb_config.toml`.
 
 Schema migration now preserves v1 rows while adding cache metadata in v2.
 Four concurrent writers, cross-connection visibility, future-schema rejection,
