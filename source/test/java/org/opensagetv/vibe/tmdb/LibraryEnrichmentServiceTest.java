@@ -112,6 +112,57 @@ final class LibraryEnrichmentServiceTest {
         cleanService.close();
         cleanCache.close();
       }
+
+      TmdbCache fuzzyCache = new TmdbCache(
+          Files.createTempDirectory("tmdb-fuzzy-title-test").resolve("cache.sqlite3"));
+      FakeMetadata fuzzyMetadata = new FakeMetadata("no exact title");
+      fuzzyMetadata.searchResults = Arrays.asList(new TmdbSearchResult(202L, MediaType.TV,
+          "The Big Bang Theory", "The Big Bang Theory", "", "2007-09-24", "/poster.jpg",
+          Arrays.asList("US")));
+      LibraryEnrichmentService fuzzyService = new LibraryEnrichmentService(
+          fuzzyMetadata, fuzzyCache);
+      try {
+        LibraryEnrichmentService.Item typo = new LibraryEnrichmentService.Item(
+            "media:typo", MediaType.TV, "The Big Bang Theroy", null, false, false);
+        LibraryEnrichmentService.Job fuzzyJob = fuzzyService.start(request("fuzzy-title", typo,
+            LibraryEnrichmentService.Action.PREVIEW_ONLY, true, false, null), null, null);
+        fuzzyJob.await(5, TimeUnit.SECONDS);
+        require(fuzzyJob.getResults().get(0).getStatus()
+            == LibraryEnrichmentService.ResultStatus.PREVIEWED,
+            "unique strong non-exact title is accepted");
+        require(Long.valueOf(202L).equals(fuzzyJob.getResults().get(0).getTmdbId()),
+            "fuzzy title keeps TMDB identity");
+      } finally {
+        fuzzyService.close();
+        fuzzyCache.close();
+      }
+
+      TmdbCache episodeCache = new TmdbCache(
+          Files.createTempDirectory("tmdb-episode-identity-test").resolve("cache.sqlite3"));
+      FakeMetadata episodeMetadata = new FakeMetadata();
+      episodeMetadata.episodeResult = new TmdbEpisode(305L, 101L, 11, 5,
+          "The Collaboration Contamination", "Episode overview", "2017-10-23", "/still.jpg");
+      LibraryEnrichmentService episodeService = new LibraryEnrichmentService(
+          episodeMetadata, episodeCache);
+      try {
+        LibraryEnrichmentService.IdentityEvidence evidence =
+            new LibraryEnrichmentService.IdentityEvidence(null, "The Big Bang Theory",
+                "The Collaboration Contamination", Integer.valueOf(11), Integer.valueOf(5),
+                "2017-10-23", "EP000000110005");
+        LibraryEnrichmentService.Item episodeItem = new LibraryEnrichmentService.Item(
+            "media:episode", MediaType.TV, "The Big Bang Theory", null, false, false, evidence);
+        LibraryEnrichmentService.Job episodeJob = episodeService.start(request("episode", episodeItem,
+            LibraryEnrichmentService.Action.PREVIEW_ONLY, true, false, null), null, null);
+        episodeJob.await(5, TimeUnit.SECONDS);
+        require(episodeJob.getResults().get(0).getStatus()
+            == LibraryEnrichmentService.ResultStatus.PREVIEWED,
+            "series plus episode identity resolves");
+        require(episodeJob.getResults().get(0).getMatchedTitle().contains("S11E05"),
+            "episode match is identified in review output");
+      } finally {
+        episodeService.close();
+        episodeCache.close();
+      }
     } finally {
       service.close();
       cache.close();
@@ -129,12 +180,14 @@ final class LibraryEnrichmentServiceTest {
     private final String requiredTitle;
     private final List<String> resolvedTitles = new java.util.ArrayList<String>();
     private final List<Integer> resolvedYears = new java.util.ArrayList<Integer>();
+    private List<TmdbSearchResult> searchResults = Collections.emptyList();
+    private TmdbEpisode episodeResult;
 
     FakeMetadata() { this(null); }
     FakeMetadata(String requiredTitle) { this.requiredTitle = requiredTitle; }
 
     public List<TmdbSearchResult> search(MediaType type, String query, Integer year) {
-      return Collections.emptyList();
+      return searchResults;
     }
     public LookupResult resolveExact(MediaType type, String title, Integer year) {
       resolvedTitles.add(title);
@@ -159,7 +212,10 @@ final class LibraryEnrichmentServiceTest {
       return Optional.empty();
     }
     public TmdbEpisode getEpisode(long seriesId, int seasonNumber, int episodeNumber)
-        throws IOException, SQLException { throw new UnsupportedOperationException(); }
+        throws IOException, SQLException {
+      if (episodeResult == null) throw new UnsupportedOperationException();
+      return episodeResult;
+    }
     public Optional<TmdbEpisode> getCachedEpisode(long seriesId, int seasonNumber,
         int episodeNumber) { return Optional.empty(); }
     public TmdbArtworkConfiguration getArtworkConfiguration() {

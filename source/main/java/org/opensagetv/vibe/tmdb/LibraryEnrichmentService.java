@@ -69,9 +69,16 @@ public final class LibraryEnrichmentService implements Closeable {
     private final Integer year;
     private final boolean hasMetadata;
     private final boolean hasArtwork;
+    private final IdentityEvidence identity;
 
     public Item(String key, MediaType mediaType, String title, Integer year,
         boolean hasMetadata, boolean hasArtwork) {
+      this(key, mediaType, title, year, hasMetadata, hasArtwork,
+          IdentityEvidence.empty());
+    }
+
+    public Item(String key, MediaType mediaType, String title, Integer year,
+        boolean hasMetadata, boolean hasArtwork, IdentityEvidence identity) {
       this.key = requireText(key, "item key");
       if (mediaType == null) throw new IllegalArgumentException("mediaType is required");
       this.mediaType = mediaType;
@@ -79,6 +86,7 @@ public final class LibraryEnrichmentService implements Closeable {
       this.year = year;
       this.hasMetadata = hasMetadata;
       this.hasArtwork = hasArtwork;
+      this.identity = identity == null ? IdentityEvidence.empty() : identity;
     }
 
     public String getKey() { return key; }
@@ -87,6 +95,53 @@ public final class LibraryEnrichmentService implements Closeable {
     public Integer getYear() { return year; }
     public boolean hasMetadata() { return hasMetadata; }
     public boolean hasArtwork() { return hasArtwork; }
+    public IdentityEvidence getIdentity() { return identity; }
+  }
+
+  /** Optional consumer evidence; old callers can continue using Item's original constructor. */
+  public static final class IdentityEvidence {
+    private final Long tmdbId;
+    private final String seriesTitle;
+    private final String episodeTitle;
+    private final Integer seasonNumber;
+    private final Integer episodeNumber;
+    private final String originalAirDate;
+    private final String externalId;
+
+    public IdentityEvidence(Long tmdbId, String seriesTitle, String episodeTitle,
+        Integer seasonNumber, Integer episodeNumber, String originalAirDate,
+        String externalId) {
+      this.tmdbId = tmdbId != null && tmdbId.longValue() > 0L ? tmdbId : null;
+      this.seriesTitle = safeText(seriesTitle);
+      this.episodeTitle = safeText(episodeTitle);
+      this.seasonNumber = positive(seasonNumber);
+      this.episodeNumber = positive(episodeNumber);
+      this.originalAirDate = safeText(originalAirDate);
+      this.externalId = safeText(externalId);
+    }
+
+    public static IdentityEvidence empty() {
+      return new IdentityEvidence(null, "", "", null, null, "", "");
+    }
+
+    public Long getTmdbId() { return tmdbId; }
+    public String getSeriesTitle() { return seriesTitle; }
+    public String getEpisodeTitle() { return episodeTitle; }
+    public Integer getSeasonNumber() { return seasonNumber; }
+    public Integer getEpisodeNumber() { return episodeNumber; }
+    public String getOriginalAirDate() { return originalAirDate; }
+    public String getExternalId() { return externalId; }
+    public boolean hasEpisodeIdentity() {
+      return !seriesTitle.isEmpty() && seasonNumber != null && episodeNumber != null;
+    }
+
+    private static Integer positive(Integer value) {
+      return value != null && value.intValue() > 0 ? value : null;
+    }
+
+    private static String safeText(String value) {
+      return value == null ? "" : value.trim();
+    }
   }
 
   public static final class Request {
@@ -349,11 +404,14 @@ public final class LibraryEnrichmentService implements Closeable {
             approved.longValue(), item.getTitle(), now());
         lookup = new LookupResult(LookupResult.Status.MATCHED, approved,
             "approved", now(), Long.MAX_VALUE);
+      } else if (item.getIdentity().getTmdbId() != null) {
+        lookup = new LookupResult(LookupResult.Status.MATCHED,
+            item.getIdentity().getTmdbId(), "existing TMDB ID", now(), Long.MAX_VALUE);
       } else {
         lookup = resolveTitleCandidates(item);
       }
       if (lookup.getStatus() == LookupResult.Status.NO_MATCH) {
-        return new Result(item, ResultStatus.NO_MATCH, null, "", "No exact match");
+        return new Result(item, ResultStatus.NO_MATCH, null, "", "No confident match");
       }
       if (lookup.getStatus() == LookupResult.Status.AMBIGUOUS
           || (approved == null && !request.isAutoApproveHighConfidence())) {
@@ -382,6 +440,25 @@ public final class LibraryEnrichmentService implements Closeable {
   }
 
   private LookupResult resolveTitleCandidates(Item item) throws IOException, SQLException {
+    IdentityEvidence identity = item.getIdentity();
+    if (item.getMediaType() == MediaType.TV && !identity.getSeriesTitle().isEmpty()) {
+      LookupResult series = metadata.resolveExact(MediaType.TV, identity.getSeriesTitle(),
+          item.getYear());
+      if (series.getStatus() == LookupResult.Status.MATCHED && identity.hasEpisodeIdentity()) {
+        TmdbEpisode episode = metadata.getEpisode(series.getTmdbId().longValue(),
+            identity.getSeasonNumber().intValue(), identity.getEpisodeNumber().intValue());
+        double episodeScore = titleSimilarity(identity.getEpisodeTitle(), episode.getName());
+        if (identity.getEpisodeTitle().isEmpty() || episodeScore >= 0.72d) {
+          return new LookupResult(LookupResult.Status.MATCHED, series.getTmdbId(),
+              series.getMatchedTitle() + " " + String.format("S%02dE%02d",
+                  identity.getSeasonNumber(), identity.getEpisodeNumber()),
+              now(), Long.MAX_VALUE);
+        }
+        return new LookupResult(LookupResult.Status.AMBIGUOUS, series.getTmdbId(),
+            series.getMatchedTitle(), now(), Long.MAX_VALUE);
+      }
+      if (series.getStatus() != LookupResult.Status.NO_MATCH) return series;
+    }
     MediaTitleParser.ParsedTitle parsed = MediaTitleParser.parse(
         item.getTitle(), item.getMediaType());
     Integer year = item.getYear() == null ? parsed.getYear() : item.getYear();
@@ -393,9 +470,97 @@ public final class LibraryEnrichmentService implements Closeable {
         ambiguous = lookup;
       }
     }
-    return ambiguous == null
-        ? new LookupResult(LookupResult.Status.NO_MATCH, null, "", now(), Long.MAX_VALUE)
-        : ambiguous;
+    if (ambiguous != null) return ambiguous;
+    return resolveStrongNonExact(item.getMediaType(), parsed.getSearchCandidates(), year);
+  }
+
+  private LookupResult resolveStrongNonExact(MediaType type, List<String> queries, Integer year)
+      throws IOException, SQLException {
+    Map<Long, ScoredCandidate> byId = new LinkedHashMap<Long, ScoredCandidate>();
+    for (String query : queries) {
+      for (TmdbSearchResult candidate : metadata.search(type, query, year)) {
+        double score = Math.max(titleSimilarity(query, candidate.getTitle()),
+            titleSimilarity(query, candidate.getOriginalTitle())) * 100.0d;
+        Integer candidateYear = yearFromDate(candidate.getDate());
+        if (year != null && candidateYear != null) {
+          score += year.equals(candidateYear) ? 12.0d : -18.0d;
+        }
+        ScoredCandidate previous = byId.get(Long.valueOf(candidate.getId()));
+        if (previous == null || score > previous.score) {
+          byId.put(Long.valueOf(candidate.getId()), new ScoredCandidate(candidate, score));
+        }
+      }
+    }
+    List<ScoredCandidate> ranked = new ArrayList<ScoredCandidate>(byId.values());
+    Collections.sort(ranked, new java.util.Comparator<ScoredCandidate>() {
+      public int compare(ScoredCandidate left, ScoredCandidate right) {
+        return Double.compare(right.score, left.score);
+      }
+    });
+    if (ranked.isEmpty() || ranked.get(0).score < 62.0d) {
+      return new LookupResult(LookupResult.Status.NO_MATCH, null, "", now(), Long.MAX_VALUE);
+    }
+    ScoredCandidate best = ranked.get(0);
+    double margin = ranked.size() == 1 ? 100.0d : best.score - ranked.get(1).score;
+    LookupResult.Status status = best.score >= 84.0d && margin >= 10.0d
+        ? LookupResult.Status.MATCHED : LookupResult.Status.AMBIGUOUS;
+    return new LookupResult(status, Long.valueOf(best.result.getId()),
+        best.result.getTitle(), now(), Long.MAX_VALUE);
+  }
+
+  static double titleSimilarity(String first, String second) {
+    String left = CachingTmdbMetadataService.normalizeTitle(first == null ? "" : first);
+    String right = CachingTmdbMetadataService.normalizeTitle(second == null ? "" : second);
+    if (left.isEmpty() || right.isEmpty()) return 0.0d;
+    if (left.equals(right)) return 1.0d;
+    Set<String> a = new LinkedHashSet<String>();
+    Set<String> b = new LinkedHashSet<String>();
+    Collections.addAll(a, left.split(" "));
+    Collections.addAll(b, right.split(" "));
+    Set<String> intersection = new LinkedHashSet<String>(a);
+    intersection.retainAll(b);
+    Set<String> union = new LinkedHashSet<String>(a);
+    union.addAll(b);
+    double jaccard = union.isEmpty() ? 0.0d
+        : ((double) intersection.size()) / ((double) union.size());
+    if (left.contains(right) || right.contains(left)) jaccard = Math.max(jaccard, 0.82d);
+    int longest = Math.max(left.length(), right.length());
+    double editSimilarity = longest == 0 ? 0.0d
+        : 1.0d - (((double) editDistance(left, right)) / ((double) longest));
+    return Math.max(jaccard, editSimilarity);
+  }
+
+  private static int editDistance(String left, String right) {
+    int[] previous = new int[right.length() + 1];
+    int[] current = new int[right.length() + 1];
+    for (int column = 0; column <= right.length(); column++) previous[column] = column;
+    for (int row = 1; row <= left.length(); row++) {
+      current[0] = row;
+      for (int column = 1; column <= right.length(); column++) {
+        int cost = left.charAt(row - 1) == right.charAt(column - 1) ? 0 : 1;
+        current[column] = Math.min(Math.min(current[column - 1] + 1,
+            previous[column] + 1), previous[column - 1] + cost);
+      }
+      int[] swap = previous;
+      previous = current;
+      current = swap;
+    }
+    return previous[right.length()];
+  }
+
+  private static Integer yearFromDate(String date) {
+    if (date == null || date.length() < 4) return null;
+    try { return Integer.valueOf(Integer.parseInt(date.substring(0, 4))); }
+    catch (NumberFormatException ignored) { return null; }
+  }
+
+  private static final class ScoredCandidate {
+    private final TmdbSearchResult result;
+    private final double score;
+    private ScoredCandidate(TmdbSearchResult result, double score) {
+      this.result = result;
+      this.score = score;
+    }
   }
 
   private static boolean isComplete(ResultStatus status) {
@@ -414,6 +579,11 @@ public final class LibraryEnrichmentService implements Closeable {
       for (Item item : items) {
         String row = item.getKey() + "\u001f" + item.getMediaType().name() + "\u001f"
             + item.getTitle() + "\u001f" + (item.getYear() == null ? "" : item.getYear()) + "\n";
+        IdentityEvidence identity = item.getIdentity();
+        row += (identity.getTmdbId() == null ? "" : identity.getTmdbId()) + "\u001f"
+            + identity.getSeriesTitle() + "\u001f" + identity.getEpisodeTitle() + "\u001f"
+            + (identity.getSeasonNumber() == null ? "" : identity.getSeasonNumber()) + "\u001f"
+            + (identity.getEpisodeNumber() == null ? "" : identity.getEpisodeNumber()) + "\n";
         digest.update(row.getBytes(StandardCharsets.UTF_8));
       }
       StringBuilder value = new StringBuilder();

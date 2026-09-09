@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- Added backward-compatible optional identity evidence to asynchronous library
+  enrichment. Existing TMDB IDs resolve directly; TV series plus season/episode
+  coordinates validate against the episode endpoint; non-exact candidates are
+  ranked by normalized/original title and year with conservative minimum-score
+  and winner-margin gates. Weak or competing matches remain review-only.
+- Included identity evidence in resumable job fingerprints so a checkpoint
+  cannot silently reuse results after provider or episode identity changes.
+- Corrected the deterministic packaging membership check so `pipefail` cannot
+  misclassify a successful `unzip` listing as SIGPIPE, and normalized archive
+  member names without a leading `./`.
+- The complete Java 8, stock-API linkage, unit, deterministic-build, and package
+  gate passes. Current SHA-256 values are
+  `193c64b383c57d9ca7e16e2dddbd20e4ed65c5fed36e287c85f7d268f9ed6069`
+  (service JAR) and
+  `7a0b714e582ccf09354f14d6a0f73b4c2ed1db98be898fa543c46bcf13284a27`
+  (versioned/plugin ZIP).
 - Added reusable conservative media-title parsing for movies and TV series.
   Lookup candidates now remove paths/extensions, SageTV numeric recording
   suffixes, season/episode markers, bracketed release years, disc/part suffixes,

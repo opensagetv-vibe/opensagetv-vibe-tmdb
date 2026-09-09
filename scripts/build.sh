@@ -68,10 +68,10 @@ cp "$root/LICENSE" "$root/THIRD_PARTY_NOTICES.md" "$root/docs/TMDB_ATTRIBUTION.m
   "$root/docs/STOCK_SAGETV_COMPATIBILITY.md" \
   "$plugin_stage/docs/opensagetv-vibe-tmdb/"
 find "$plugin_stage" -exec touch -h -d "@$archive_epoch" {} +
-(cd "$plugin_stage" && find . -mindepth 1 -print | LC_ALL=C sort | \
+(cd "$plugin_stage" && find . -mindepth 1 -printf '%P\n' | LC_ALL=C sort | \
   zip -X -q "$out/packages/OpenSageTVVibeTMDB-plugin.zip" -@)
 unzip -Z1 "$out/packages/OpenSageTVVibeTMDB-plugin.zip" | \
-  grep -Fxq 'docs/opensagetv-vibe-tmdb/STOCK_SAGETV_COMPATIBILITY.md' || {
+  grep -Fx 'docs/opensagetv-vibe-tmdb/STOCK_SAGETV_COMPATIBILITY.md' >/dev/null || {
     echo 'ERROR: stock compatibility contract missing from plugin ZIP' >&2
     exit 1
   }

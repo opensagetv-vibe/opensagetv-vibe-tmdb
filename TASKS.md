@@ -3,5 +3,8 @@
 This is the only active TMDB backlog. Completed work is removed and recorded
 in `CHANGELOG.md` and `HANDOFF.md`.
 
-No reusable-service implementation task is currently open. Consumer-specific
-UI and physical commissioning remain in each consumer's own backlog.
+- [x] Add reusable evidence-scored library matching for non-exact titles while
+  preserving the existing API constructors and exact/manual mapping behavior.
+  Provider IDs and episode identity must outrank title similarity; automatic
+  approval requires one uniquely strong candidate and ambiguity remains
+  review-only.

@@ -2,6 +2,21 @@
 
 ## Current state
 
+Library enrichment now supports optional `IdentityEvidence` without breaking
+the original `Item` constructor. Existing TMDB/provider IDs take priority;
+series identity plus season/episode coordinates is checked through the episode
+endpoint; remaining non-exact search results use conservative title/year
+scoring and require both a high score and a clear winner for automatic match.
+Ambiguous evidence remains review-only. Identity participates in checkpoint
+fingerprints so changed evidence cannot reuse stale completed work.
+
+The complete Java 8, stock-API linkage, unit, deterministic-build, and package
+gate passes. Current SHA-256 values are
+`193c64b383c57d9ca7e16e2dddbd20e4ed65c5fed36e287c85f7d268f9ed6069`
+(service JAR) and
+`7a0b714e582ccf09354f14d6a0f73b4c2ed1db98be898fa543c46bcf13284a27`
+(versioned/plugin ZIP).
+
 Version 0.2.1 adds the shared `MediaTitleParser` and routes asynchronous
 library enrichment through its ordered lookup candidates. The parser safely
 handles noisy filenames such as `Honey.I.Shrunk.the.Kids.(1989).1080p...` and
