@@ -10,6 +10,9 @@
   bypassing exact-match, ambiguity-review, or overwrite protections. Version
   metadata is now 0.2.1, and the complete Java 8-compatible test, stock-API
   linkage, deterministic build, and package-validation workflow passes.
+- Restored executable Git metadata for the documented Linux workflow and build
+  entry points, with repository CI checks preventing future regressions. The
+  workflow runner is pinned to Ubuntu 24.04 for reproducibility.
 - Commissioned the exact v0.2.0 service JAR on isolated SageTV server `.232`
   and exercised it through SageMC on non-Pro Fire TV `.25`. Full-library and
   selected-title Preview Only flows passed start/progress/results, review,
