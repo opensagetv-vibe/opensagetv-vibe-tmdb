@@ -11,6 +11,7 @@ public final class TestRunner {
     TmdbConfigurationTest.run();
     TmdbCacheTest.run();
     TmdbServiceTest.run();
+    LibraryEnrichmentServiceTest.run();
     TmdbApiClientFailureTest.run();
     SageTvPluginCompatibilityTest.run();
     String localConfig = System.getenv("TMDB_TEST_CONFIG");

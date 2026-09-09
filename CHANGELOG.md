@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Added the reusable asynchronous library-enrichment worker for full-library
+  and selected-title consumers. It supports Preview Only, Save Metadata, Save
+  Artwork, and Save Metadata + Artwork; bounded one-to-four worker concurrency;
+  exact-match auto approval; ambiguous/manual review; explicit overwrite
+  confirmation; cancellation; secret-safe progress; and durable manual match
+  approvals.
+- Migrated the SQLite cache from schema 2 to schema 3 with resumable job and
+  per-item result checkpoints. Migration preserves v1/v2 cache data, completed
+  items are not repeated after restart, and failed/review/overwrite-blocked
+  items remain eligible for a later resume.
+
 ## 0.1.1 - 2026-09-08
 
 - Apply the Enabled setting immediately so the shared TMDB service can be

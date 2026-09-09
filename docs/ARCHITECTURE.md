@@ -44,3 +44,22 @@ lookups for XMLTV. The SageTV plugin wrapper will expose configuration and a
 small callable facade suitable for STV use. XMLTV will use a compile-time Java
 adapter and preserve feed-supplied fields unless enrichment is explicitly
 enabled.
+
+## Library enrichment API
+
+`LibraryEnrichmentService` is the shared asynchronous worker for SageMC,
+XMLTV, and future consumers. A caller supplies stable item keys plus media
+type/title/year and chooses Preview Only, Save Metadata, Save Artwork, or Save
+Metadata + Artwork. The worker caps concurrency at four, delegates request
+pacing and retry handling to the existing API client, and persists schema-3
+job and per-item checkpoints. Resubmitting the same job and item fingerprint
+continues incomplete, failed, review, or overwrite-blocked items without
+repeating completed items.
+
+Unique exact matches may be auto-approved. Ambiguous matches and optionally
+all automatic matches are returned for review; explicit item-to-TMDB approval
+becomes a durable manual mapping. The worker will not invoke a consumer write
+sink over existing metadata or artwork until overwrite confirmation is present.
+Progress contains counts and stable states only, never URLs or credentials.
+The caller owns SageTV enumeration, review presentation, and the final SageTV
+write transaction; it never owns TMDB transport or SQLite access.

@@ -37,4 +37,6 @@ public interface TmdbMetadataService extends Closeable {
 
   Optional<TmdbArtworkConfiguration> getCachedArtworkConfiguration()
       throws IOException, SQLException;
+
+  LibraryEnrichmentService getLibraryEnrichmentService();
 }

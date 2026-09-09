@@ -6,7 +6,7 @@ credentials, request pacing, retry behavior, manual mappings, and a persistent
 SQLite cache.
 
 The service provides strict local TOML configuration and a
-versioned SQLite schema 2 cache with WAL, a bounded busy timeout, transactional schema
+versioned SQLite schema 3 cache with WAL, a bounded busy timeout, transactional schema
 migration, positive/negative lookup rows, manual mappings, expiry, and a hard
 180-day retention ceiling. Its Java API supports movie/TV/person search,
 exact and manual resolution, raw details, typed episode and artwork results,
@@ -16,6 +16,15 @@ uses the typed Java API, while XMLTV uses the small scalar
 `getProgrammeMetadata` facade so neither consumer reads credentials or SQLite
 directly. The XMLTV facade returns an empty result for no or ambiguous matches;
 consumers retain their source metadata in that case.
+
+The reusable library-enrichment API accepts either a selected title or a full
+consumer-supplied library inventory. It runs asynchronously with bounded
+concurrency, stores resumable job/item checkpoints in the same private SQLite
+database, and supports Preview Only, Save Metadata, Save Artwork, and Save
+Metadata + Artwork. Exact matches can be approved automatically; ambiguous
+matches enter a review queue. Existing metadata/artwork is never overwritten
+unless the caller supplies an explicit confirmation. Consumers own SageTV
+writes through the API's narrow sink callback and never access the database.
 
 Copy `tmdb_config.example.toml` to an ignored `tmdb_config.toml`. The existing
 `C:\TMP_SAGETV_DOCKER\hdhr_atsc_epg\tmdb_config.toml` may be supplied locally

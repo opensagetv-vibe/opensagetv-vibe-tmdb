@@ -97,6 +97,7 @@ final class TmdbCacheTest {
     testConcurrentWriters(database.resolveSibling("concurrent.sqlite3"), now);
     testAbruptProcessRecovery(database.resolveSibling("abrupt.sqlite3"), now);
     testVersionOneMigration(database.resolveSibling("legacy-v1.sqlite3"), now);
+    testVersionTwoMigration(database.resolveSibling("legacy-v2.sqlite3"), now);
     testFutureSchemaRejection(database.resolveSibling("future.sqlite3"));
 
     Path corrupt = database.resolveSibling("corrupt.sqlite3");
@@ -180,7 +181,7 @@ final class TmdbCacheTest {
       statement.execute("PRAGMA user_version=1");
     }
     try (TmdbCache migrated = new TmdbCache(database)) {
-      require(migrated.schemaVersion() == TmdbCache.SCHEMA_VERSION, "v1 to v2 migration");
+      require(migrated.schemaVersion() == TmdbCache.SCHEMA_VERSION, "v1 to current migration");
       require(migrated.getResource("legacy", now + 1).isPresent(), "migration preserves cache rows");
     }
   }
@@ -198,6 +199,29 @@ final class TmdbCacheTest {
       throw new AssertionError("future schema should be rejected");
     } catch (java.sql.SQLException expected) {
       require(expected.getMessage().contains("newer than supported"), "future schema diagnostic");
+    }
+  }
+
+  private static void testVersionTwoMigration(Path database, long now) throws Exception {
+    try (TmdbCache cache = new TmdbCache(database)) {
+      cache.putResource("legacy-v2", "movie", Long.valueOf(20), "details", "en-US", "US", "",
+          "{\"id\":20}", now, CachePolicy.DEFAULT_DETAILS_TTL_SECONDS);
+    }
+    try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath());
+        Statement statement = connection.createStatement()) {
+      statement.execute("DROP TABLE enrichment_result");
+      statement.execute("DROP TABLE enrichment_job");
+      statement.execute("PRAGMA user_version=2");
+    }
+    try (TmdbCache migrated = new TmdbCache(database)) {
+      require(migrated.schemaVersion() == TmdbCache.SCHEMA_VERSION,
+          "v2 enrichment-checkpoint migration");
+      require(migrated.getResource("legacy-v2", now + 1).isPresent(),
+          "v2 migration preserves cache rows");
+      migrated.putEnrichmentJob("migration-check", "fingerprint", 1, 0,
+          LibraryEnrichmentService.JobState.RUNNING.name(), now);
+      require(migrated.getEnrichmentJob("migration-check") != null,
+          "v2 migration creates enrichment tables");
     }
   }
 

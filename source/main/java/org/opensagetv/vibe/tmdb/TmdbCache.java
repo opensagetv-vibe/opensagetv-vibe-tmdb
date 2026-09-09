@@ -13,10 +13,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 /** Single-owner SQLite cache shared by SageMC, XMLTV, and later metadata consumers. */
 public final class TmdbCache implements Closeable {
-  public static final int SCHEMA_VERSION = 2;
+  public static final int SCHEMA_VERSION = 3;
   private static final Object INITIALIZATION_LOCK = new Object();
   private final Path databasePath;
   private final Connection connection;
@@ -103,6 +105,25 @@ public final class TmdbCache implements Closeable {
             "INSERT OR REPLACE INTO cache_metadata(metadata_key,metadata_value,updated_at) "
                 + "VALUES('schema','2',strftime('%s','now'))");
         current = 2;
+      }
+      if (current == 2) {
+        statement.execute(
+            "CREATE TABLE IF NOT EXISTS enrichment_job ("
+                + "job_id TEXT PRIMARY KEY, request_fingerprint TEXT NOT NULL, total INTEGER NOT NULL, "
+                + "completed INTEGER NOT NULL, state TEXT NOT NULL, updated_at INTEGER NOT NULL)");
+        statement.execute(
+            "CREATE TABLE IF NOT EXISTS enrichment_result ("
+                + "job_id TEXT NOT NULL, item_key TEXT NOT NULL, status TEXT NOT NULL, "
+                + "tmdb_id INTEGER, matched_title TEXT NOT NULL, message TEXT NOT NULL, "
+                + "processed_at INTEGER NOT NULL, PRIMARY KEY(job_id,item_key), "
+                + "FOREIGN KEY(job_id) REFERENCES enrichment_job(job_id) ON DELETE CASCADE)");
+        statement.execute(
+            "CREATE INDEX IF NOT EXISTS enrichment_result_status "
+                + "ON enrichment_result(job_id,status)");
+        statement.execute(
+            "INSERT OR REPLACE INTO cache_metadata(metadata_key,metadata_value,updated_at) "
+                + "VALUES('schema','3',strftime('%s','now'))");
+        current = 3;
       }
       statement.execute("PRAGMA user_version=" + current);
       connection.commit();
@@ -297,6 +318,69 @@ public final class TmdbCache implements Closeable {
     return removed;
   }
 
+  synchronized void putEnrichmentJob(String jobId, String fingerprint, int total,
+      int completed, String state, long updatedAt) throws SQLException {
+    try (PreparedStatement statement = connection.prepareStatement(
+        "INSERT INTO enrichment_job(job_id,request_fingerprint,total,completed,state,updated_at) "
+            + "VALUES(?,?,?,?,?,?) ON CONFLICT(job_id) DO UPDATE SET "
+            + "request_fingerprint=excluded.request_fingerprint,total=excluded.total,"
+            + "completed=excluded.completed,state=excluded.state,updated_at=excluded.updated_at")) {
+      statement.setString(1, requireValue(jobId, "jobId"));
+      statement.setString(2, requireValue(fingerprint, "fingerprint"));
+      statement.setInt(3, total);
+      statement.setInt(4, completed);
+      statement.setString(5, requireValue(state, "state"));
+      statement.setLong(6, updatedAt);
+      statement.executeUpdate();
+    }
+  }
+
+  synchronized String[] getEnrichmentJob(String jobId) throws SQLException {
+    try (PreparedStatement statement = connection.prepareStatement(
+        "SELECT request_fingerprint,total,completed,state,updated_at "
+            + "FROM enrichment_job WHERE job_id=?")) {
+      statement.setString(1, requireValue(jobId, "jobId"));
+      try (ResultSet result = statement.executeQuery()) {
+        if (!result.next()) return null;
+        return new String[] {result.getString(1), Integer.toString(result.getInt(2)),
+            Integer.toString(result.getInt(3)), result.getString(4),
+            Long.toString(result.getLong(5))};
+      }
+    }
+  }
+
+  synchronized void putEnrichmentResult(String jobId, String itemKey, String status,
+      Long tmdbId, String matchedTitle, String message, long processedAt) throws SQLException {
+    try (PreparedStatement statement = connection.prepareStatement(
+        "INSERT INTO enrichment_result(job_id,item_key,status,tmdb_id,matched_title,message,processed_at) "
+            + "VALUES(?,?,?,?,?,?,?) ON CONFLICT(job_id,item_key) DO UPDATE SET "
+            + "status=excluded.status,tmdb_id=excluded.tmdb_id,matched_title=excluded.matched_title,"
+            + "message=excluded.message,processed_at=excluded.processed_at")) {
+      statement.setString(1, requireValue(jobId, "jobId"));
+      statement.setString(2, requireValue(itemKey, "itemKey"));
+      statement.setString(3, requireValue(status, "status"));
+      if (tmdbId == null) statement.setNull(4, java.sql.Types.BIGINT);
+      else statement.setLong(4, tmdbId.longValue());
+      statement.setString(5, safe(matchedTitle));
+      statement.setString(6, safe(message));
+      statement.setLong(7, processedAt);
+      statement.executeUpdate();
+    }
+  }
+
+  synchronized Set<String> getCompletedEnrichmentKeys(String jobId) throws SQLException {
+    Set<String> keys = new LinkedHashSet<String>();
+    try (PreparedStatement statement = connection.prepareStatement(
+        "SELECT item_key FROM enrichment_result WHERE job_id=? "
+            + "AND status IN ('PREVIEWED','SAVED','NO_MATCH') ORDER BY item_key")) {
+      statement.setString(1, requireValue(jobId, "jobId"));
+      try (ResultSet result = statement.executeQuery()) {
+        while (result.next()) keys.add(result.getString(1));
+      }
+    }
+    return keys;
+  }
+
   /** Creates a transactionally consistent SQLite snapshot without exposing table ownership. */
   public synchronized void backup(Path destination) throws SQLException, IOException {
     Path target = destination.toAbsolutePath().normalize();
@@ -332,6 +416,11 @@ public final class TmdbCache implements Closeable {
     if (value == null || value.trim().isEmpty()) {
       throw new IllegalArgumentException(name + " must not be blank");
     }
+  }
+
+  private static String requireValue(String value, String name) {
+    requireText(value, name);
+    return value.trim();
   }
 
   @Override

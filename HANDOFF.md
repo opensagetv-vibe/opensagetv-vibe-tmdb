@@ -2,6 +2,16 @@
 
 ## Current state
 
+The 0.2.0 development tree adds `LibraryEnrichmentService`, the reusable
+selected-title/full-library worker requested by SageMC. The Java 8 API owns
+bounded background execution, TMDB/cache calls, schema-3 checkpoint/resume,
+review classification, durable manual approvals, overwrite protection, and
+credential-safe progress. Consumers retain the final SageTV write boundary
+through a narrow sink callback. Focused tests cover preview, save, overwrite
+guard, resume, explicit approval, fingerprint mismatch, and v2-to-v3 migration.
+Physical installation remains restricted to isolated `.232`; stock `.175`
+must remain read-only.
+
 The plugin passed its binary-link probe against the exact read-only stock `.175`
 `Sage.jar` on 2026-09-08 (SHA-256
 `d76ded981b9bc51e25b9cec821b6abeb771b46c2996dc45e453349b5e703fcb0`).
@@ -11,7 +21,7 @@ boundary is recorded in `docs/STOCK_SAGETV_COMPATIBILITY.md`.
 The standalone project and first cache/configuration foundation exist locally
 and are integrated into the common ten-repository development/handoff workflow.
 The Java 8-compatible sources implement strict `[tmdb]` TOML loading with
-redacted summaries and SQLite schema version 2 with WAL, busy timeout,
+redacted summaries and SQLite schema version 3 with WAL, busy timeout,
 transactional migration, positive/negative lookup cache, generic JSON
 resource cache, manual mappings, expiry, and a 180-day maximum retention.
 

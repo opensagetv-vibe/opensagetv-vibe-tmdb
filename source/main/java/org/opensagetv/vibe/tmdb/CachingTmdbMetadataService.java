@@ -21,6 +21,7 @@ public final class CachingTmdbMetadataService implements TmdbMetadataService {
   private final TmdbCache cache;
   private final String language;
   private final String region;
+  private final LibraryEnrichmentService libraryEnrichmentService;
 
   public CachingTmdbMetadataService(TmdbConfiguration configuration) throws IOException, SQLException {
     this(new TmdbApiClient(configuration), new TmdbCache(configuration.getCachePath()),
@@ -32,6 +33,7 @@ public final class CachingTmdbMetadataService implements TmdbMetadataService {
     this.cache = cache;
     this.language = language;
     this.region = region;
+    this.libraryEnrichmentService = new LibraryEnrichmentService(this, cache);
   }
 
   @Override
@@ -222,6 +224,11 @@ public final class CachingTmdbMetadataService implements TmdbMetadataService {
         : Optional.<TmdbArtworkConfiguration>empty();
   }
 
+  @Override
+  public LibraryEnrichmentService getLibraryEnrichmentService() {
+    return libraryEnrichmentService;
+  }
+
   private Map<String, String> commonParameters() {
     Map<String, String> result = new LinkedHashMap<String, String>();
     result.put("language", language);
@@ -354,5 +361,12 @@ public final class CachingTmdbMetadataService implements TmdbMetadataService {
   }
 
   @Override
-  public void close() throws IOException { cache.close(); }
+  public void close() throws IOException {
+    IOException failure = null;
+    try { libraryEnrichmentService.close(); } catch (IOException error) { failure = error; }
+    try { cache.close(); } catch (IOException error) {
+      if (failure == null) failure = error; else failure.addSuppressed(error);
+    }
+    if (failure != null) throw failure;
+  }
 }
