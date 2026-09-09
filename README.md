@@ -25,6 +25,11 @@ Metadata + Artwork. Exact matches can be approved automatically; ambiguous
 matches enter a review queue. Existing metadata/artwork is never overwritten
 unless the caller supplies an explicit confirmation. Consumers own SageTV
 writes through the API's narrow sink callback and never access the database.
+Before enrichment matching, the shared service conservatively derives search
+candidates from media filenames: it removes known extensions, SageTV recording
+IDs, season/episode markers, bracketed years, disc/part suffixes, and technical
+release tags. The cleaned candidate is tried first, the original title remains
+the final fallback, and ambiguous matches still require review.
 
 Copy `tmdb_config.example.toml` to an ignored `tmdb_config.toml`. The existing
 `C:\TMP_SAGETV_DOCKER\hdhr_atsc_epg\tmdb_config.toml` may be supplied locally

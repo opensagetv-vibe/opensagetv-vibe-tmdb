@@ -350,7 +350,7 @@ public final class LibraryEnrichmentService implements Closeable {
         lookup = new LookupResult(LookupResult.Status.MATCHED, approved,
             "approved", now(), Long.MAX_VALUE);
       } else {
-        lookup = metadata.resolveExact(item.getMediaType(), item.getTitle(), item.getYear());
+        lookup = resolveTitleCandidates(item);
       }
       if (lookup.getStatus() == LookupResult.Status.NO_MATCH) {
         return new Result(item, ResultStatus.NO_MATCH, null, "", "No exact match");
@@ -379,6 +379,23 @@ public final class LibraryEnrichmentService implements Closeable {
     } catch (Exception error) {
       return new Result(item, ResultStatus.FAILED, null, "", safeMessage(error.getMessage()));
     }
+  }
+
+  private LookupResult resolveTitleCandidates(Item item) throws IOException, SQLException {
+    MediaTitleParser.ParsedTitle parsed = MediaTitleParser.parse(
+        item.getTitle(), item.getMediaType());
+    Integer year = item.getYear() == null ? parsed.getYear() : item.getYear();
+    LookupResult ambiguous = null;
+    for (String candidate : parsed.getSearchCandidates()) {
+      LookupResult lookup = metadata.resolveExact(item.getMediaType(), candidate, year);
+      if (lookup.getStatus() == LookupResult.Status.MATCHED) return lookup;
+      if (lookup.getStatus() == LookupResult.Status.AMBIGUOUS && ambiguous == null) {
+        ambiguous = lookup;
+      }
+    }
+    return ambiguous == null
+        ? new LookupResult(LookupResult.Status.NO_MATCH, null, "", now(), Long.MAX_VALUE)
+        : ambiguous;
   }
 
   private static boolean isComplete(ResultStatus status) {

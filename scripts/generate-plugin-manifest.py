@@ -56,7 +56,7 @@ def main():
         ("Description", "Shared, cache-backed TMDB metadata service for SageTV plugins."),
         ("Author", "OpenSageTV Vibe"),
         ("CreationDate", "2026.09.08"),
-        ("ModificationDate", "2026.09.08"),
+        ("ModificationDate", "2026.09.09"),
         ("Version", args.version),
         ("ResourcePath", "OpenSageTVVibeTMDB"),
         ("Webpage", "https://github.com/opensagetv-vibe/opensagetv-vibe-tmdb"),
@@ -78,7 +78,7 @@ def main():
     ET.SubElement(package_element, "Location").text = location
     ET.SubElement(package_element, "MD5").text = md5(package)
     ET.SubElement(root, "ReleaseNotes").text = (
-        "Initial shared TMDB service with SQLite caching and fail-safe SageMC/XMLTV adapters."
+        "Adds reusable media-title cleanup and safe fallback matching for noisy filenames."
     )
 
     ET.indent(root, space="    ")

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Added reusable conservative media-title parsing for movies and TV series.
+  Lookup candidates now remove paths/extensions, SageTV numeric recording
+  suffixes, season/episode markers, bracketed release years, disc/part suffixes,
+  and bounded technical release tags while always retaining the original title
+  as the final safe fallback. Library enrichment tries those candidates without
+  bypassing exact-match, ambiguity-review, or overwrite protections. Version
+  metadata is now 0.2.1, and the complete Java 8-compatible test, stock-API
+  linkage, deterministic build, and package-validation workflow passes.
 - Commissioned the exact v0.2.0 service JAR on isolated SageTV server `.232`
   and exercised it through SageMC on non-Pro Fire TV `.25`. Full-library and
   selected-title Preview Only flows passed start/progress/results, review,

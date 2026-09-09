@@ -9,6 +9,7 @@ public final class TestRunner {
 
   public static void main(String[] args) throws Exception {
     TmdbConfigurationTest.run();
+    MediaTitleParserTest.run();
     TmdbCacheTest.run();
     TmdbServiceTest.run();
     LibraryEnrichmentServiceTest.run();

@@ -63,3 +63,11 @@ sink over existing metadata or artwork until overwrite confirmation is present.
 Progress contains counts and stable states only, never URLs or credentials.
 The caller owns SageTV enumeration, review presentation, and the final SageTV
 write transaction; it never owns TMDB transport or SQLite access.
+
+`MediaTitleParser` supplies reusable, conservative lookup candidates for all
+library consumers. It recognizes paths/extensions, SageTV numeric recording
+suffixes, TV season/episode markers, bracketed release years, numbered disc
+parts, and a bounded list of technical release tags. Cleaned candidates are
+attempted before the raw source title. Numeric real titles such as `1917` and
+`Blade Runner 2049` remain intact, and candidate cleanup never bypasses exact
+matching, ambiguity review, or explicit approval.

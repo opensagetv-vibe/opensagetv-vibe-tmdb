@@ -89,6 +89,29 @@ final class LibraryEnrichmentServiceTest {
         require(expected.getMessage().contains("different item set"),
             "fingerprint mismatch diagnostic");
       }
+
+      TmdbCache cleanCache = new TmdbCache(
+          Files.createTempDirectory("tmdb-clean-title-test").resolve("cache.sqlite3"));
+      FakeMetadata cleanMetadata = new FakeMetadata("Honey I Shrunk the Kids");
+      LibraryEnrichmentService cleanService = new LibraryEnrichmentService(cleanMetadata, cleanCache);
+      try {
+        LibraryEnrichmentService.Item noisy = new LibraryEnrichmentService.Item(
+            "media:noisy", MediaType.MOVIE,
+            "001 - Honey.I.Shrunk.the.Kids.(1989).1080p.BluRay.mkv", null, false, false);
+        LibraryEnrichmentService.Job cleanJob = cleanService.start(request("clean-title", noisy,
+            LibraryEnrichmentService.Action.PREVIEW_ONLY, true, false, null), null, null);
+        cleanJob.await(5, TimeUnit.SECONDS);
+        require(cleanJob.getResults().get(0).getStatus()
+            == LibraryEnrichmentService.ResultStatus.PREVIEWED,
+            "cleaned title resolves before raw fallback");
+        require("Honey I Shrunk the Kids".equals(cleanMetadata.resolvedTitles.get(0)),
+            "cleaned title is first lookup candidate");
+        require(Integer.valueOf(1989).equals(cleanMetadata.resolvedYears.get(0)),
+            "parsed year is supplied as a lookup hint");
+      } finally {
+        cleanService.close();
+        cleanCache.close();
+      }
     } finally {
       service.close();
       cache.close();
@@ -103,10 +126,22 @@ final class LibraryEnrichmentServiceTest {
   }
 
   private static final class FakeMetadata implements TmdbMetadataService {
+    private final String requiredTitle;
+    private final List<String> resolvedTitles = new java.util.ArrayList<String>();
+    private final List<Integer> resolvedYears = new java.util.ArrayList<Integer>();
+
+    FakeMetadata() { this(null); }
+    FakeMetadata(String requiredTitle) { this.requiredTitle = requiredTitle; }
+
     public List<TmdbSearchResult> search(MediaType type, String query, Integer year) {
       return Collections.emptyList();
     }
     public LookupResult resolveExact(MediaType type, String title, Integer year) {
+      resolvedTitles.add(title);
+      resolvedYears.add(year);
+      if (requiredTitle != null && !requiredTitle.equals(title)) {
+        return new LookupResult(LookupResult.Status.NO_MATCH, null, "", 1L, Long.MAX_VALUE);
+      }
       return new LookupResult(LookupResult.Status.MATCHED, Long.valueOf(101L),
           "Sample Movie", 1L, Long.MAX_VALUE);
     }

@@ -2,6 +2,13 @@
 
 ## Current state
 
+Version 0.2.1 adds the shared `MediaTitleParser` and routes asynchronous
+library enrichment through its ordered lookup candidates. The parser safely
+handles noisy filenames such as `Honey.I.Shrunk.the.Kids.(1989).1080p...` and
+`The.Big.Bang.Theory.S03E12...`, preserves numeric titles such as `1917` and
+`Blade Runner 2049`, and retains the raw input as the final fallback. The full
+test, stock-SageTV API linkage, build, and package-validation workflow passes.
+
 The 0.2.0 development tree adds `LibraryEnrichmentService`, the reusable
 selected-title/full-library worker requested by SageMC. The Java 8 API owns
 bounded background execution, TMDB/cache calls, schema-3 checkpoint/resume,
