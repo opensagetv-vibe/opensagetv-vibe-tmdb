@@ -16,6 +16,9 @@ SageTV restart because JVM plugin classes cannot be replaced safely in place.
 The build creates a canonical component ZIP, a versioned public-release ZIP,
 a stock SageTV V9 repository manifest with the exact legacy MD5 required by the
 plugin manager, and a SHA-256 checksum set for modern artifact verification.
+Archive member timestamps and ordering are normalized, so identical source and
+dependencies produce byte-identical JAR and ZIP outputs. Repository CI builds
+twice and compares the complete checksum set.
 
 For an optional authenticated commissioning smoke test, set `TMDB_TEST_CONFIG`
 to a private TOML file outside this repository before running the test gate.

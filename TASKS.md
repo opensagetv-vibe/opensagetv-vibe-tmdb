@@ -6,4 +6,5 @@ in `CHANGELOG.md` and `HANDOFF.md`.
 ## Planned reusable features
 
 No reusable-service implementation task is currently open. SageMC presentation
-and physical commissioning remain in the SageMC project's own backlog.
+and physical commissioning are complete and recorded in both projects' durable
+handoffs; future consumer-specific work remains in that consumer's own backlog.

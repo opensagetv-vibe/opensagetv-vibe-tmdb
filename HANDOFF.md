@@ -10,7 +10,27 @@ credential-safe progress. Consumers retain the final SageTV write boundary
 through a narrow sink callback. Focused tests cover preview, save, overwrite
 guard, resume, explicit approval, fingerprint mismatch, and v2-to-v3 migration.
 Physical installation remains restricted to isolated `.232`; stock `.175`
-must remain read-only.
+must remain read-only. The exact v0.2.0 JAR is now commissioned on `.232` with
+SHA-256
+`4c41ab81344190e54d24093645cb93a29dc5d50b4e1fb5aee7ea6e17179cf216`.
+SageMC on non-Pro Fire TV `.25` physically passed full-library Preview Only
+start/progress/results/review/cancel and a selected-title Preview Only scan.
+The selected Aladdin DVD created one completed schema-3 checkpoint with
+`REVIEW_REQUIRED`, TMDB ID 420817, and no metadata or artwork writes.
+
+SageTV's persisted plugin registry can still display the earlier 0.1.1
+descriptor until the normal plugin manager updates it. The running JVM loads
+the commissioned 0.2.0 classpath; do not hand-edit SageTV registry properties
+solely to alter that displayed version.
+
+Post-release packaging is now byte-reproducible. The build normalizes member
+timestamps to `SOURCE_DATE_EPOCH` (or a fixed safe default), orders plugin ZIP
+members, and omits `jar`'s generated current-time manifest. Two consecutive
+complete local builds matched exactly: JAR SHA-256
+`20479dd031aeaeb148c958addde74129c305f1ca4fdd47aa76c89de700949c5c`
+and versioned plugin-ZIP SHA-256
+`1da5da98c18622bc94271c517f67a481dc142500ccf2827608568ad521bdc5b6`.
+CI repeats the build and compares the full package checksum set.
 
 The plugin passed its binary-link probe against the exact read-only stock `.175`
 `Sage.jar` on 2026-09-08 (SHA-256
@@ -45,8 +65,8 @@ ten-repository handoff test also pass with this project included. The project
 has the common update and changed-files handoff launchers. Targeted component
 installation/rollback and unified release/SBOM assembly pass. The Apache-2.0
 source is published at `opensagetv-vibe/opensagetv-vibe-tmdb`, and its GitHub
-CI passes. Physical plugin commissioning and the versioned GitHub release now
-pass. The V9 manifest is awaiting upstream review in
+CI passes. Physical plugin commissioning and the versioned v0.2.0 GitHub
+release now pass. The V9 manifest is awaiting upstream review in
 `OpenSageTV/sagetv-plugin-repo#123`.
 
 The public API now includes typed episode/artwork results, cache-only reads,
@@ -101,6 +121,7 @@ server `.175` was not modified.
 
 ## Next takeover
 
-Monitor `OpenSageTV/sagetv-plugin-repo#123` for upstream review. The remaining
-backlog is the planned reusable library-enrichment worker in `TASKS.md`. Do not
-install or modify anything on stock server `.175`.
+Monitor `OpenSageTV/sagetv-plugin-repo#123` for upstream review. There is no
+open reusable-service implementation task in `TASKS.md`; consumer-specific UI
+work remains in each consumer repository. Do not install or modify anything on
+stock server `.175`.

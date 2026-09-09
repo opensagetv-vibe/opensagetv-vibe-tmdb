@@ -12,6 +12,7 @@ gson_sha256=2cbd119bf1961c28788310963dc80ba65f58cdeec1dd139c8bdb1240faa2c36f
 gson_jar="$deps/gson-$gson_version.jar"
 gson_url="https://repo.maven.apache.org/maven2/com/google/code/gson/gson/$gson_version/gson-$gson_version.jar"
 version="$(sed -n 's/^VERSION=//p' "$root/release.properties" | tr -d '\r')"
+archive_epoch="${SOURCE_DATE_EPOCH:-946684800}"
 [[ "$version" =~ ^[0-9]+([.][0-9]+){1,3}$ ]] || {
   echo "ERROR: SageTV plugin VERSION must be dotted numeric: $version" >&2
   exit 1
@@ -47,7 +48,10 @@ if [[ -n "$sage_jar" ]]; then
 else
   echo 'SKIPPED: actual Sage.jar binary-compatibility probe (set SAGETV_COMPILE_JAR)'
 fi
-jar --create --file "$out/packages/OpenSageTVVibeTMDB.jar" -C "$out/classes" .
+# javac and cp use the current time. Normalize archive members and omit jar's
+# generated, current-time manifest so identical sources produce identical JARs.
+find "$out/classes" -exec touch -h -d "@$archive_epoch" {} +
+jar --create --no-manifest --file "$out/packages/OpenSageTVVibeTMDB.jar" -C "$out/classes" .
 if jar tf "$out/packages/OpenSageTVVibeTMDB.jar" | grep -q '^sage/'; then
   echo 'ERROR: compile-only SageTV API classes leaked into the plugin JAR' >&2
   exit 1
@@ -63,7 +67,9 @@ cp "$root/tmdb_config.example.toml" "$root/plugin.properties" \
 cp "$root/LICENSE" "$root/THIRD_PARTY_NOTICES.md" "$root/docs/TMDB_ATTRIBUTION.md" \
   "$root/docs/STOCK_SAGETV_COMPATIBILITY.md" \
   "$plugin_stage/docs/opensagetv-vibe-tmdb/"
-(cd "$plugin_stage" && zip -X -q -r "$out/packages/OpenSageTVVibeTMDB-plugin.zip" .)
+find "$plugin_stage" -exec touch -h -d "@$archive_epoch" {} +
+(cd "$plugin_stage" && find . -mindepth 1 -print | LC_ALL=C sort | \
+  zip -X -q "$out/packages/OpenSageTVVibeTMDB-plugin.zip" -@)
 unzip -Z1 "$out/packages/OpenSageTVVibeTMDB-plugin.zip" | \
   grep -Fxq 'docs/opensagetv-vibe-tmdb/STOCK_SAGETV_COMPATIBILITY.md' || {
     echo 'ERROR: stock compatibility contract missing from plugin ZIP' >&2

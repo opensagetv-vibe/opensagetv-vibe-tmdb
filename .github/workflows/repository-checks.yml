@@ -19,7 +19,12 @@ jobs:
           distribution: temurin
           java-version: '11'
       - name: Build, test, and package Java 8-compatible plugin
-        run: bash scripts/build.sh
+        run: |
+          set -euo pipefail
+          bash scripts/build.sh
+          cp output/packages/SHA256SUMS /tmp/tmdb-first-SHA256SUMS
+          bash scripts/build.sh
+          cmp /tmp/tmdb-first-SHA256SUMS output/packages/SHA256SUMS
       - name: Reject private credentials and cache data
         run: |
           set -euo pipefail

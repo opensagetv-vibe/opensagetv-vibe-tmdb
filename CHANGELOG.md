@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- Commissioned the exact v0.2.0 service JAR on isolated SageTV server `.232`
+  and exercised it through SageMC on non-Pro Fire TV `.25`. Full-library and
+  selected-title Preview Only flows passed start/progress/results, review,
+  cancellation, and resumable SQLite checkpointing. The selected Aladdin DVD
+  produced one `REVIEW_REQUIRED` result for TMDB ID 420817, and no metadata or
+  artwork was written. The loaded JAR SHA-256 is
+  `4c41ab81344190e54d24093645cb93a29dc5d50b4e1fb5aee7ea6e17179cf216`.
+  SageTV's persisted plugin descriptor may continue to display 0.1.1 until its
+  normal plugin-manager update; the running JVM uses the commissioned 0.2.0
+  classpath, so registry metadata must not be hand-edited.
+- Made JAR and plugin-ZIP packaging reproducible by normalizing archive member
+  times, using stable member ordering, and omitting the generated current-time
+  JAR manifest. Two complete consecutive builds now produce identical JAR
+  SHA-256 `20479dd031aeaeb148c958addde74129c305f1ca4fdd47aa76c89de700949c5c`
+  and plugin-ZIP SHA-256
+  `1da5da98c18622bc94271c517f67a481dc142500ccf2827608568ad521bdc5b6`.
+  GitHub CI repeats the build and compares the complete `SHA256SUMS` set.
+
+## 0.2.0 - 2026-09-08
+
 - Added the reusable asynchronous library-enrichment worker for full-library
   and selected-title consumers. It supports Preview Only, Save Metadata, Save
   Artwork, and Save Metadata + Artwork; bounded one-to-four worker concurrency;
