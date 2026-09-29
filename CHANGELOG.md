@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.1 - 2026-09-29
 
 - Added backward-compatible optional identity evidence to asynchronous library
   enrichment. Existing TMDB IDs resolve directly; TV series plus season/episode

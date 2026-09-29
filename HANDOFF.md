@@ -2,6 +2,12 @@
 
 ## Current state
 
+Version 0.2.1 is approved for publication. It packages the tested reusable
+title parser and evidence-scored movie/series/episode matching while retaining
+Java 8 and unmodified stock-SageTV compatibility. Release validation remains
+impact-based and uses the already-passing unit, stock-linkage, deterministic
+build, package, manifest, and credential-redaction gates.
+
 Library enrichment now supports optional `IdentityEvidence` without breaking
 the original `Item` constructor. Existing TMDB/provider IDs take priority;
 series identity plus season/episode coordinates is checked through the episode
