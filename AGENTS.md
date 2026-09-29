@@ -17,6 +17,11 @@ required attribution notice in every consuming UI.
 
 Do not create prompt, review, session, or per-version Markdown/text files.
 
+Release validation is impact-based: rerun only gates the release changes could
+affect. Do not repeat unrelated completed gates. Run the full gate suite only
+when the user explicitly requests it or a broad dependency/architecture change
+requires it, and document that reason and scope.
+
 
 ## Stock-server test-control policy
 
