@@ -2,7 +2,8 @@
 
 Read `README.md`, `HANDOFF.md`, `TASKS.md`, `WORKFLOW.md`, and
 `docs/ARCHITECTURE.md` before changing this repository. `TASKS.md` is the sole
-local backlog; completed work moves to `CHANGELOG.md` and `HANDOFF.md`.
+local backlog; completed work moves to its checklist change ledger and release
+evidence also moves to `CHANGELOG.md` and `HANDOFF.md`.
 
 The plugin owns all TMDB HTTP traffic, authentication, rate limiting, and its
 SQLite cache. SageMC, XMLTV, and other consumers use the public Java service
@@ -36,3 +37,13 @@ requires it, and document that reason and scope.
   expressed through the stock plugin/API boundary. Document the proven API
   gap, keep the extension optional and negotiated with a safe stock fallback,
   and verify older clients and installations remain unaffected.
+
+## Pre-commit task-list maintenance
+
+Immediately before every repository commit, clean `TASKS.md`: move every
+completed `[x]` item out of the active task sections and into
+`## Checklist change ledger`. Preserve stable IDs, acceptance evidence, order,
+and enough source/parent context to understand the result. Never delete
+completion history. Active task sections must contain unchecked work only;
+checked boxes may appear only inside the checklist change ledger. Regenerate
+the project manifest when the repository tracks one.
