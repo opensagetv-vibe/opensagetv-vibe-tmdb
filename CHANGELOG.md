@@ -1,5 +1,9 @@
 # Changelog
 
+- 2026-10-09: reconciled the already-published0.2.1 release and merged catalog
+  entry through independent public download/GitHub SHA256/catalog MD5 checks.
+  No newer runtime exists; publication task closes without a new binary.
+
 ## 0.2.1 - 2026-09-29
 
 - Added backward-compatible optional identity evidence to asynchronous library

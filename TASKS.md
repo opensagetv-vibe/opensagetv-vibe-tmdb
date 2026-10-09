@@ -9,11 +9,15 @@ This is the only active TMDB backlog. Completed work moves to the checklist
 change ledger; release evidence is also recorded in `CHANGELOG.md` and
 `HANDOFF.md`.
 
-- [ ] Publish the approved v0.2.1 plugin release, verify deterministic public
-  artifacts and hashes, confirm repository checks, and update the SageTV plugin
-  catalog proposal without overstating physical metadata-write validation.
-
 ## Checklist change ledger
+
+- [x] Approved v0.2.1 publication acceptance reconciled2026-10-09. Release was
+  already public2026-09-29 and its catalog proposal is merged. Independently
+  downloaded package/manifest match GitHub SHA256 and current upstream catalog
+  MD5 E11928A2542DAA22B2AC8A287EAF0857; source HEAD CI is green. No runtime
+  change since the tag, so no artificial new version or physical metadata-write
+  claim. Original acceptance: publish approved release, verify deterministic
+  public artifacts/hashes/CI and update the catalog proposal.
 
 - 2026-10-08 pre-commit source-sync review: task-fix/server-boundary workflow
   only; TMDB code, cache schema and package inputs are unchanged. Existing

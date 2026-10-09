@@ -2,6 +2,13 @@
 
 ## Current state
 
+2026-10-09 publication reconciliation: v0.2.1 is already public and its current
+upstream SageTV catalog entry matches the independently downloaded package
+MD5 E11928A2542DAA22B2AC8A287EAF0857 and GitHub SHA2565ae354f330850e252321590fa0ab265b9e7f01f05f788fabf76807b4041b7666.
+Runtime/source inputs are unchanged since the tag; do not create a version bump
+just for workflow/task documentation. Publication task closes with no new
+physical metadata-write assertion. Catalog-pending notes below are historical.
+
 Version 0.2.1 is approved for publication. It packages the tested reusable
 title parser and evidence-scored movie/series/episode matching while retaining
 Java 8 and unmodified stock-SageTV compatibility. Release validation remains
