@@ -15,6 +15,11 @@ change ledger; release evidence is also recorded in `CHANGELOG.md` and
 
 ## Checklist change ledger
 
+- 2026-10-08 pre-commit source-sync review: task-fix/server-boundary workflow
+  only; TMDB code, cache schema and package inputs are unchanged. Existing
+  plugin publication remains its own task, not an Android-release checkoff.
+  Completed entries ledger-only and workspace order reviewed305.
+
 
 ### Archived completed checklist items (2026-09-30)
 
